@@ -1532,7 +1532,14 @@ function newGame() {
   started = true;
 }
 function play() { overlay.hidden = true; running = true; paused = false; last = performance.now(); }
-function clearInvite() { if (location.hash) history.replaceState(null, '', location.pathname + location.search); }
+// The game can sit inside a page of the same site (the Adoptic staff portal frames it). Then that page's
+// address is the one to share and to clear; inside anyone else's page (a claude.ai preview) it can't be read.
+function hostPage() { try { return window.top.location.href ? window.top : null; } catch (_) { return null; } }
+function clearInvite() {
+  for (const w of new Set([window, hostPage() || window])) {
+    if (w.location.hash) w.history.replaceState(null, '', w.location.pathname + w.location.search);
+  }
+}
 function startSolo() {
   closeNet();
   net.mode = 'solo'; me = HOME; active[HOME] = true; active[AWAY] = false;
@@ -1598,7 +1605,7 @@ function closeNet() {
 const noPeerJs = () => menu('error', { msg: "The online part of the game didn't load. Check your internet connection and reload the page." });
 
 function hostMatch() {
-  if (window.self !== window.top) {                   // inside another page (e.g. a claude.ai preview): can't reach other players
+  if (!hostPage()) {                                  // inside another site's page (e.g. a claude.ai preview): can't reach other players
     menu('error', { title: 'Play a friend', msg: "This copy of the game can't connect to other players. Online matches work at bluegeorgeparker.github.io/footy." });
     return;
   }
@@ -1608,7 +1615,8 @@ function hostMatch() {
   net.code = makeCode();
   const peer = new Peer(peerId(net.code));
   net.peer = peer;
-  menu('host-wait', { link: location.origin + location.pathname + '#' + net.code, status: 'Setting up…' });
+  const home = hostPage().location;                   // the address in the browser bar, even when framed by our own site
+  menu('host-wait', { link: home.origin + home.pathname + '#' + net.code, status: 'Setting up…' });
   peer.on('open', () => { if (net.peer === peer && !net.conn) setStatus('Waiting for your friend to open the link…'); });
   peer.on('connection', conn => {
     if (net.conn && net.conn.open) {                  // someone else while a match is on
