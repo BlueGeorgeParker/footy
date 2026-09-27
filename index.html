@@ -158,9 +158,9 @@
     <dl class="controls">
       <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>Run</dd>
       <dt><kbd>Left-click</kbd></dt><dd>Kick. Hold, pull back, let go. The further you pull, the longer the kick and the wider the area it could land in.</dd>
-      <dt><kbd>Left-drag</kbd></dt><dd>Without the ball: tackle. Press, pull back and let go, and you launch yourself the other way. Like a kick, the red area shows where you could land: the further you pull, the further you fly and the wider it gets. You're in the air on the way, so only where you land counts. You glow while you're pulling, same as any tackle. A quick click on a teammate still takes them over.</dd>
+      <dt><kbd>Left-drag</kbd></dt><dd>Without the ball: tackle. Press, pull back and let go, and you launch yourself the other way. Like a kick, the red area shows where you could land: the further you pull, the further you fly and the wider it gets. You're in the air on the way, so only where you land counts. You glow while you're pulling, same as any tackle. A quick click without a pull takes over the teammate nearest the pointer instead.</dd>
       <dt><kbd>Right-click</kbd></dt><dd>Handball, the same way. It only goes 35&nbsp;m, but it's quick and flat: there before a kick would be, though anyone in its path can pick it off, and nobody can mark it.</dd>
-      <dt><kbd>Click a teammate</kbd></dt><dd>Take them over whenever you don't have the ball. Run under it to catch it.</dd>
+      <dt><kbd>Click</kbd></dt><dd>Take over the teammate nearest the pointer (they're ringed) whenever you don't have the ball. Run under it to catch it.</dd>
       <dt><kbd>&larr;</kbd><kbd>&rarr;</kbd></dt><dd>Switch between your players near the ball and near where it's coming down, left to right. Every kick puts you on the one nearest where it's coming down to start with.</dd>
       <dt><kbd>Q</kbd></dt><dd>Take over the teammate closest to where the ball is coming down</dd>
       <dt><kbd>Space</kbd></dt><dd>Tap to jump: for the mark when the ball's dropping near you, and from right behind someone you climb them for a specky. A jump also clears a ground slam. Hold to wind up a diving tackle straight away, and let go to dive. The dive knocks down any opponent it hits, ball or not, and dive through the ball to take it, however high it is.</dd>
@@ -1470,7 +1470,7 @@ function update(dt) {
 function localTick(dt) {
   if (placing && !canPlace()) placing = null;
   if (placing && placing.moved) sendPlace(placing, performance.now());
-  hoverP = canPlace() ? pickTeammate(mouse.x, mouse.y, true) : ball.holder !== human ? pickTeammate(mouse.x, mouse.y) : null;
+  hoverP = canPlace() ? closestTeammate(mouse.x, mouse.y, true) : ball.holder !== human ? closestTeammate(mouse.x, mouse.y) : null;
   for (let i = waves.length - 1; i >= 0; i--) if ((waves[i].t += dt) >= 0.5) waves.splice(i, 1);
   updateCamera(dt);
   updPowersHud(); updPlanHud();
@@ -1535,6 +1535,17 @@ function cycleNear(dir) {
   list.sort((a, b) => a.x - b.x || a.y - b.y);
   act({ a: 'pick', i: list[(list.indexOf(human) + dir + list.length) % list.length].id });
 }
+// the teammate nearest the pointer, wherever it is: the mouse is always pointing at someone
+function closestTeammate(sx, sy, andYou) {
+  const [wx, wy] = s2w(sx, sy);
+  let best = null, bd = Infinity;
+  for (const p of players) {
+    if (p.team !== me || (p === human && !andYou)) continue;
+    const d = hyp(p.x - wx, p.y - wy);
+    if (d < bd) { bd = d; best = p; }
+  }
+  return best;
+}
 function takeNearest() {
   if (!running || paused || ball.holder === human) return;
   act({ a: 'nearest' });
@@ -1565,7 +1576,7 @@ cv.addEventListener('pointerdown', e => {
   if (aim && e.button !== aim.btn) { aim = null; return; }   // the other button calls the kick off
   if (tack && e.button !== 0) { tack = null; return; }         // or the tackle
   if (canPlace() && e.button === 0) {                 // ball's out of play: pick a player up (a click without a drag takes them over)
-    const p = pickTeammate(e.clientX, e.clientY, true);
+    const p = closestTeammate(e.clientX, e.clientY, true);
     if (p) {
       placing = { i: p.id, sx: e.clientX, sy: e.clientY, moved: false, sentAt: 0 };
       try { cv.setPointerCapture(e.pointerId); } catch (_) { /* fine without capture */ }
@@ -1585,12 +1596,12 @@ cv.addEventListener('pointerdown', e => {
   if (human && ball.holder === human && phase === 'play') {
     aim = { type: e.button === 0 ? 'kick' : 'hb', btn: e.button, sx: e.clientX, sy: e.clientY };
     try { cv.setPointerCapture(e.pointerId); } catch (_) { /* fine without capture */ }
-  } else if (e.button === 0 && phase === 'play') {    // a click on a teammate takes them over; a pull winds up a tackle
-    const p = pickTeammate(e.clientX, e.clientY);
+  } else if (e.button === 0 && phase === 'play') {    // a quick click takes over the teammate nearest the pointer; a pull winds up a tackle
+    const p = closestTeammate(e.clientX, e.clientY);
     tack = { sx: e.clientX, sy: e.clientY, pick: p ? p.id : -1, moved: false };
     try { cv.setPointerCapture(e.pointerId); } catch (_) { /* fine without capture */ }
   } else if (e.button === 0) {
-    const p = pickTeammate(e.clientX, e.clientY);
+    const p = closestTeammate(e.clientX, e.clientY);
     if (p) act({ a: 'pick', i: p.id });
   }
 });

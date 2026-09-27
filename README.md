@@ -20,7 +20,7 @@ The match runs in the host's browser, so the host keeps their tab open and in fr
 | Left-click, pull back, let go | Kick. Further pull, longer kick, wider landing area |
 | Right-click, pull back, let go | Handball: up to 35 m, quicker and flatter than a kick, but interceptable along the way and never a mark |
 | Left-click, pull back, let go (no ball) | Tackle: launch yourself the other way. Like a kick, a red area shows where you could land: further pull, further dive, wider area. Only the landing counts. A plain click on a teammate takes them over |
-| Click a teammate | Take them over when you don't have the ball |
+| Click | Take over the teammate nearest the pointer (ringed) when you don't have the ball |
 | ← → | Switch between your players near the ball and near where it's coming down, left to right |
 | Q | Take over the teammate closest to where the ball is coming down |
 | Space | Tap: jump the way you're running (can't be tackled mid-jump), or jump for a mark when the ball's dropping near you. Hold: wind up a diving tackle, let go to dive |
