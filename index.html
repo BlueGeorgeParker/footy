@@ -1569,6 +1569,10 @@ function closeNet() {
 const noPeerJs = () => menu('error', { msg: "The online part of the game didn't load. Check your internet connection and reload the page." });
 
 function hostMatch() {
+  if (window.self !== window.top) {                   // inside another page (e.g. a claude.ai preview): can't reach other players
+    menu('error', { title: 'Play a friend', msg: "This copy of the game can't connect to other players. Online matches work at bluegeorgeparker.github.io/footy." });
+    return;
+  }
   if (typeof Peer !== 'function') { noPeerJs(); return; }
   closeNet();
   net.mode = 'hosting'; me = HOME; active[AWAY] = false;
