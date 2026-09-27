@@ -1,6 +1,6 @@
 # Footy Simulator
 
-Top-down Aussie rules in the browser, 18 a side. Play the computer, or send a friend a link and play each other online.
+Top-down Aussie rules in the browser, 24 a side. Play the computer, or send a friend a link and play each other online.
 
 **Play:** https://bluegeorgeparker.github.io/footy/
 
@@ -22,7 +22,8 @@ The match runs in the host's browser, so the host keeps their tab open and in fr
 | Click a teammate | Take them over when you don't have the ball |
 | Q | Take over the teammate closest to where the ball is coming down |
 | Hold Space | With the ball: wind up a kick toward the pointer. Without: wind up a diving tackle |
-| Shift | Leap the way you're running; can't be tackled mid-leap |
+| Shift | Tap: jump the way you're running (can't be tackled mid-jump), or jump for a mark when the ball's dropping near you. Hold: wind up a diving tackle, let go to dive |
+| Ctrl | Hold for a speed boost; run into an opponent without the ball to knock them out of the way |
 | Wheel | Zoom |
 | P | Pause |
 
