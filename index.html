@@ -155,7 +155,7 @@
       <dt><kbd>Click a teammate</kbd></dt><dd>Take them over whenever you don't have the ball. Run under it to catch it.</dd>
       <dt><kbd>Q</kbd></dt><dd>Take over the teammate closest to where the ball is coming down</dd>
       <dt><kbd>Hold Space</kbd></dt><dd>With the ball: wind up a kick toward your mouse pointer, let go to kick. Without it: wind up a diving tackle, let go to dive. When the ball's dropping near you: shove the nearest opponent.</dd>
-      <dt><kbd>Shift</kbd></dt><dd>Tap to leap, hold to sprint. When the ball's dropping near you: jump for it. Jump from right behind someone to climb them for a specky.</dd>
+      <dt><kbd>Shift</kbd></dt><dd>Dash the way you're running: nobody can tackle you mid-dash, so time it against a glowing tackler. Keep holding to sprint. When the ball's dropping near you: jump for it instead. Jump from right behind someone to climb them for a specky.</dd>
       <dt><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><kbd>5</kbd></dt><dd>Power-ups: perfect kick, guaranteed mark, super tackle, Gigaplayer, Zone Pass. Each one recharges after you use it.</dd>
       <dt><kbd>Wheel</kbd></dt><dd>Zoom</dd>
       <dt><kbd>P</kbd></dt><dd>Pause</dd>
@@ -201,7 +201,7 @@ const SPACE_KICK = 0.9;                            // seconds of holding Space f
 const DIVE = { charge: 0.6, dur: 0.32, spd: [10, 17], down: 0.65 };        // your hold-Space tackle
 const LUNGE = { range: 4.6, windup: [0.55, 0.85], dur: 0.34, spd: 12.5, down: 0.75 }; // theirs
 const LEAP = { dur: 0.28, spd: 15, cd: 1.1, reach: 4.5 };
-const SPRINT = { mult: 1.5, drain: 0.45, fill: 0.16, tap: 180 };  // stamina 0..1 per second; a Shift press shorter than tap (ms) is a leap
+const SPRINT = { mult: 1.5, drain: 0.45, fill: 0.16, tap: 180 };  // stamina 0..1 per second; holding Shift past tap (ms) sprints
 // The ground is cut into thirds by walls nobody can cross. The ball goes over them.
 const WALL = A / 3;
 const ZONES = [[-Infinity, -WALL], [-WALL, WALL], [WALL, Infinity]];
@@ -635,7 +635,6 @@ function inputDir(p) {
 }
 const moveDir = p => inputDir(p) || [p.fx, p.fy];
 let shiftAt = 0;                                      // when Shift went down (0: it's up)
-let shiftJumped = false;                              // this Shift press was a jump for the ball, not a leap
 const sprintHeld = () => !!shiftAt && performance.now() - shiftAt >= SPRINT.tap;
 const diveSpeed = c => lerp(DIVE.spd[0], DIVE.spd[1], c);
 function startLunge(p, dx, dy, spd, dur, downT) {
@@ -1394,10 +1393,11 @@ window.addEventListener('keydown', e => {
     else diveHeld = true;
   }
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
-    shiftAt = performance.now(); shiftJumped = false;
-    if (running && !paused && contestFor(human)) {    // the ball's dropping near you: jump for it
-      shiftJumped = true;
-      const [x, y] = readKeys(); act({ a: 'jump', x, y });
+    shiftAt = performance.now();
+    if (running && !paused) {
+      const [x, y] = readKeys();
+      if (contestFor(human)) act({ a: 'jump', x, y });   // the ball's dropping near you: jump for it
+      else act({ a: 'leap', x, y });                  // the dash, the instant you press, so you can time it against a tackle
     }
   }
   if (/^Digit[1-5]$/.test(e.code) && running && !paused) act({ a: 'power', n: Number(e.code.slice(5)) - 1 });
@@ -1405,9 +1405,6 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => {
   keys[e.code] = false;
-  if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && shiftAt && !shiftJumped && performance.now() - shiftAt < SPRINT.tap && running && !paused) {
-    const [x, y] = readKeys(); act({ a: 'leap', x, y });  // a tap
-  }
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') shiftAt = 0;
   if (e.code === 'Space' && kickHeld) releaseKick();
   else if (e.code === 'Space' && diveHeld) { diveHeld = false; const [x, y] = readKeys(); act({ a: 'dive', x, y }); }
