@@ -18,7 +18,7 @@ The match runs in the host's browser, so the host keeps their tab open and in fr
 | --- | --- |
 | WASD | Run |
 | Left-click, pull back, let go | Kick. Further pull, longer kick, wider landing area |
-| Right-click, pull back, let go | Handball |
+| Right-click, pull back, let go | Handball: up to 35 m, quicker and flatter than a kick, but interceptable along the way and never a mark |
 | Left-click, pull back, let go (no ball) | Tackle: launch yourself the other way. Like a kick, a red area shows where you could land: further pull, further dive, wider area. Only the landing counts. A plain click on a teammate takes them over |
 | Click a teammate | Take them over when you don't have the ball |
 | ← → | Switch between your players near the ball and near where it's coming down, left to right |

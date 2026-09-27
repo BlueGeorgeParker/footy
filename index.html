@@ -159,7 +159,7 @@
       <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>Run</dd>
       <dt><kbd>Left-click</kbd></dt><dd>Kick. Hold, pull back, let go. The further you pull, the longer the kick and the wider the area it could land in.</dd>
       <dt><kbd>Left-drag</kbd></dt><dd>Without the ball: tackle. Press, pull back and let go, and you launch yourself the other way. Like a kick, the red area shows where you could land: the further you pull, the further you fly and the wider it gets. You're in the air on the way, so only where you land counts. You glow while you're pulling, same as any tackle. A quick click on a teammate still takes them over.</dd>
-      <dt><kbd>Right-click</kbd></dt><dd>Handball, the same way. Shorter and safer.</dd>
+      <dt><kbd>Right-click</kbd></dt><dd>Handball, the same way. It only goes 35&nbsp;m, but it's quick and flat: there before a kick would be, though anyone in its path can pick it off, and nobody can mark it.</dd>
       <dt><kbd>Click a teammate</kbd></dt><dd>Take them over whenever you don't have the ball. Run under it to catch it.</dd>
       <dt><kbd>&larr;</kbd><kbd>&rarr;</kbd></dt><dd>Switch between your players near the ball and near where it's coming down, left to right. Every kick puts you on the one nearest where it's coming down to start with.</dd>
       <dt><kbd>Q</kbd></dt><dd>Take over the teammate closest to where the ball is coming down</dd>
@@ -203,7 +203,7 @@ const PR = 0.95;                                  // player radius
 const REACH = 3.1, CATCH_R = 1.35, PICKUP_R = 1.2;
 // power 0..1 maps distance min..max; sL / sT = spread along / across the kick (1 sigma, metres)
 const KICK = { min: 10, max: 62, sL: [1.0, 9.0], sT: [0.7, 6.0], z0: 0.6 };   // same range as on a normal ground: the bigger ground has to be worked up
-const HAND = { min: 3, max: 21, sL: [0.35, 2.6], sT: [0.25, 1.8], z0: 1.0 };
+const HAND = { min: 3, max: 35, sL: [0.35, 3.2], sT: [0.25, 2.2], z0: 1.0 };   // shorter than a kick but quicker, flatter and never a mark
 const FULL_DRAG = 230;                            // px of pull for full power
 const QUARTER = 300;
 // power moves. spd in m/s, times in seconds
