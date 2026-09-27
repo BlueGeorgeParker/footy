@@ -413,6 +413,14 @@ function setupBounce() {
   game.focusZone = 1;
   phase = 'prebounce'; phaseT = 1.6;
 }
+// after a goal there's no bounce: the side that conceded restarts with the ball in the centre
+function restartAfterGoal() {
+  setupBounce();                                      // everyone back to their spots
+  const c = players[game.restart * NP + 8];           // their centre, on their side of the circle
+  ball.frozen = false;
+  phase = 'play'; phaseT = 0;
+  give(c, { free: true });
+}
 function launchBounce() {
   const a = rand(0, Math.PI * 2), sp = rand(0.3, 1.3);
   Object.assign(ball, { frozen: false, state: 'air', x: 0, y: 0, z: 1.4, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: 12.5, kickType: 'bounce', kicker: null, kickTeam: null, touched: true, airTime: 0, from: { x: 0, y: 0 } });
@@ -430,7 +438,7 @@ function launchRaw(x, y, z0, tx, ty, T, type, kicker) {
   ball.exclude = kicker ? [[kicker, 0.5]] : [];
 }
 function scoreFor(team, goal, end) {
-  if (goal) { game.g[team]++; banner('GOAL!', rgba(TEAM[team].light, 1), 2.4); phase = 'goal'; phaseT = 3.0; }
+  if (goal) { game.g[team]++; banner('GOAL!', rgba(TEAM[team].light, 1), 2.4); phase = 'goal'; phaseT = 3.0; game.restart = 1 - team; }
   else { game.b[team]++; banner('BEHIND', '#ffffff', 1.6); phase = 'behind'; phaseT = 2.0; game.kickInEnd = end; }
   ball.state = 'dead'; aim = null;
 }
@@ -480,7 +488,7 @@ function endQuarter() {
 function phaseDone() {
   switch (phase) {
     case 'prebounce': launchBounce(); break;
-    case 'goal': setupBounce(); break;
+    case 'goal': restartAfterGoal(); break;
     case 'behind': setupKickIn(game.kickInEnd); break;
     case 'throwin': doThrowIn(); break;
     case 'freekick': doFreeKick(); break;
