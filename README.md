@@ -21,9 +21,9 @@ The match runs in the host's browser, so the host keeps their tab open and in fr
 | Right-click, pull back, let go | Handball |
 | Click a teammate | Take them over when you don't have the ball |
 | Q | Take over the teammate closest to where the ball is coming down |
-| Hold Space | With the ball: wind up a kick toward the pointer. Without: wind up a diving tackle |
-| Shift | Tap: jump the way you're running (can't be tackled mid-jump), or jump for a mark when the ball's dropping near you. Hold: wind up a diving tackle, let go to dive |
-| Ctrl | Hold for a speed boost; run into an opponent without the ball to knock them out of the way |
+| Space | Tap: jump the way you're running (can't be tackled mid-jump), or jump for a mark when the ball's dropping near you. Hold: wind up a diving tackle, let go to dive |
+| Shift | Hold for a speed boost; run into an opponent without the ball to knock them out of the way |
+| 1-5 | Power-ups |
 | Wheel | Zoom |
 | P | Pause |
 

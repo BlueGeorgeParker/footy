@@ -161,9 +161,8 @@
       <dt><kbd>Right-click</kbd></dt><dd>Handball, the same way. Shorter and safer.</dd>
       <dt><kbd>Click a teammate</kbd></dt><dd>Take them over whenever you don't have the ball. Run under it to catch it.</dd>
       <dt><kbd>Q</kbd></dt><dd>Take over the teammate closest to where the ball is coming down</dd>
-      <dt><kbd>Hold Space</kbd></dt><dd>With the ball: wind up a kick, steer it with the arrow keys (it starts the way you're facing; run with WASD meanwhile), let go to kick. Without it: wind up a diving tackle, let go to dive. When the ball's dropping near you: shove the nearest opponent.</dd>
-      <dt><kbd>Shift</kbd></dt><dd>Tap to jump the way you're running: nobody can tackle you mid-jump, so time it against a glowing tackler. When the ball's dropping near you it jumps for the mark instead; from right behind someone you climb them for a specky. Keep holding to wind up a diving tackle, and let go to dive.</dd>
-      <dt><kbd>Ctrl</kbd></dt><dd>Hold for a speed boost (it uses the bar under your player). Run into an opponent who hasn't got the ball and you knock them out of the way.</dd>
+      <dt><kbd>Space</kbd></dt><dd>Tap to jump the way you're running: nobody can tackle you mid-jump, so time it against a glowing tackler. When the ball's dropping near you it jumps for the mark instead; from right behind someone you climb them for a specky. Keep holding to wind up a diving tackle, and let go to dive.</dd>
+      <dt><kbd>Shift</kbd></dt><dd>Hold for a speed boost (it uses the bar under your player). Run into an opponent who hasn't got the ball and you knock them out of the way. That's also how you push someone off the spot in a marking contest.</dd>
       <dt><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><kbd>5</kbd></dt><dd>Power-ups: perfect kick, guaranteed mark, super tackle, Gigaplayer, Zone Pass. Press the number or click it in the bar at the bottom. Each one recharges after you use it.</dd>
       <dt><kbd>Wheel</kbd></dt><dd>Zoom</dd>
       <dt><kbd>P</kbd></dt><dd>Pause</dd>
@@ -205,12 +204,11 @@ const HAND = { min: 3, max: 21, sL: [0.35, 2.6], sT: [0.25, 1.8], z0: 1.0 };
 const FULL_DRAG = 230;                            // px of pull for full power
 const QUARTER = 300;
 // power moves. spd in m/s, times in seconds
-const SPACE_KICK = 0.9;                            // seconds of holding Space for a full-power kick
-const DIVE = { charge: 0.6, dur: 0.32, spd: [10, 17], down: 0.65 };        // your tackle: hold Shift (or Space) to wind it up
+const DIVE = { charge: 0.6, dur: 0.32, spd: [10, 17], down: 0.65 };        // your tackle: hold Space to wind it up
 const LUNGE = { range: 4.6, windup: [0.55, 0.85], dur: 0.34, spd: 12.5, down: 0.75 }; // theirs
 const LEAP = { dur: 0.28, spd: 15, cd: 1.1, reach: 4.5 };
-const SHIFT_HOLD = 180;                            // ms: hold Shift past this and it winds up a tackle
-const SPRINT = { mult: 1.5, drain: 0.45, fill: 0.16 };  // the Ctrl boost; stamina 0..1 per second
+const TAP_HOLD = 180;                              // ms: hold Space past this and it winds up a tackle
+const SPRINT = { mult: 1.5, drain: 0.45, fill: 0.16 };  // the Shift boost; stamina 0..1 per second
 const KNOCK = { reach: 0.4, spd: 16, cost: 0.1 };  // boosting into someone knocks them flying; cost = stamina per knock
 const GATHER = 10;                                // metres from where a kick comes down that players close in for the mark
 // The ground is cut into thirds by walls nobody can cross. The ball goes over them.
@@ -287,7 +285,7 @@ const game = {
 const stats = {};
 const bump = k => { stats[k] = (stats[k] || 0) + 1; };
 let phase = 'prebounce', phaseT = 0, running = false, paused = false, started = false;
-let human = null, manOnMark = null, hoverP = null, aim = null, diveHeld = false, kickHeld = false, kickCharge = 0;
+let human = null, manOnMark = null, hoverP = null, aim = null;
 // `me` is the side this browser plays. ctrl[t] is the player that side's person is steering
 // (null while the computer runs the whole side); pad[t] is what that person is pressing.
 let me = HOME;
@@ -652,28 +650,19 @@ function tackle(o, h) {
 // ---------------------------------------------------------------- power moves
 function canAct(p) { return phase === 'play' && p.down <= 0 && !p.lunge && p.leapT <= 0 && p.stun <= 0 && !(p.jumpT > 0); }
 function readKeys() {                                // this browser's WASD (or arrows) as a unit vector
-  const arrows = !kickHeld;                           // while winding up a Space kick the arrows aim instead
-  const ix = (keys.KeyD || (arrows && keys.ArrowRight) ? 1 : 0) - (keys.KeyA || (arrows && keys.ArrowLeft) ? 1 : 0);
-  const iy = (keys.KeyS || (arrows && keys.ArrowDown) ? 1 : 0) - (keys.KeyW || (arrows && keys.ArrowUp) ? 1 : 0);
+  const ix = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
+  const iy = (keys.KeyS || keys.ArrowDown ? 1 : 0) - (keys.KeyW || keys.ArrowUp ? 1 : 0);
   const l = hyp(ix, iy);
   return l ? [ix / l, iy / l] : [0, 0];
 }
-function arrowDir() {                                 // just the arrow keys, for aiming a Space kick
-  const ix = (keys.ArrowRight ? 1 : 0) - (keys.ArrowLeft ? 1 : 0), iy = (keys.ArrowDown ? 1 : 0) - (keys.ArrowUp ? 1 : 0);
-  const l = hyp(ix, iy);
-  return l ? [ix / l, iy / l] : null;
-}
-let kickDir = [1, 0];                                 // which way a Space kick is aimed
-const KICK_TURN = 3.2;                                // how fast the arrows swing it, radians a second
 function inputDir(p) {
   const pd = pad[p.team];
   return controlled(p) && (pd.x || pd.y) ? [pd.x, pd.y] : null;
 }
 const moveDir = p => inputDir(p) || [p.fx, p.fy];
-let shiftAt = 0;                                      // when Shift went down (0: it's up)
-const boostHeld = () => !!(keys.ControlLeft || keys.ControlRight);
-const shiftTackle = () => !!shiftAt && performance.now() - shiftAt >= SHIFT_HOLD;   // Shift held past a tap
-const tackleHeld = () => diveHeld || shiftTackle();
+let spaceAt = 0;                                      // when Space went down (0: it's up)
+const boostHeld = () => !!(keys.ShiftLeft || keys.ShiftRight);
+const tackleHeld = () => !!spaceAt && performance.now() - spaceAt >= TAP_HOLD;   // Space held past a tap
 const diveSpeed = c => lerp(DIVE.spd[0], DIVE.spd[1], c);
 function startLunge(p, dx, dy, spd, dur, downT) {
   p.lunge = { t: 0, dur, dx, dy, spd, downT };
@@ -910,7 +899,7 @@ function landTime() {
   const vz = net.mode === 'guest' ? net.bt.vz : ball.vz;
   return (vz + Math.sqrt(Math.max(0, vz * vz + 2 * G * Math.max(0, ball.z)))) / G;
 }
-// is the ball dropping close to p? Then Space shoves and Shift jumps for it
+// is the ball dropping close to p? Then Space jumps for it
 function contestFor(p) {
   return !!p && !ball.holder && phase === 'play' && ball.z > 0.3 && landTime() < 2.2 && hyp(focus.x - p.x, focus.y - p.y) < 9;
 }
@@ -1326,7 +1315,7 @@ function update(dt) {
     if (moveSpecial(p, dt)) { p.sprinting = false; continue; }
     if (controlled(p)) humanMove(p, dt); else aiMove(p, dt);
   }
-  for (const t of [HOME, AWAY]) {                     // holding Shift (or Space) without the ball winds up a dive
+  for (const t of [HOME, AWAY]) {                     // holding Space without the ball winds up a dive
     const c = ctrl[t];
     if (!c) continue;
     if (pad[t].space && ball.holder !== c && canAct(c)) c.charge = Math.min(1, c.charge + dt / DIVE.charge * (game.arm[t].super > 0 ? 3 : 1));
@@ -1354,17 +1343,6 @@ function update(dt) {
 }
 // what only this browser needs each frame, whoever runs the match
 function localTick(dt) {
-  if (kickHeld) {                                     // holding Space with the ball winds up a kick
-    if (ball.holder === human && phase === 'play') {
-      kickCharge = Math.min(1, kickCharge + dt / SPACE_KICK);
-      const want = arrowDir();                        // an arrow swings the aim toward its direction
-      if (want) {
-        const a0 = Math.atan2(kickDir[1], kickDir[0]), d = Math.atan2(want[1], want[0]) - a0;
-        const a = a0 + clamp(Math.atan2(Math.sin(d), Math.cos(d)), -KICK_TURN * dt, KICK_TURN * dt);
-        kickDir = [Math.cos(a), Math.sin(a)];
-      }
-    } else { kickHeld = false; kickCharge = 0; }
-  }
   hoverP = ball.holder !== human ? pickTeammate(mouse.x, mouse.y) : null;
   updateCamera(dt);
   updPowersHud(); updPlanHud();
@@ -1396,11 +1374,7 @@ function updateCamera(dt) {
 // ---------------------------------------------------------------- input
 const mouse = { x: -999, y: -999 };
 function aimInfo() {
-  if (!human || ball.holder !== human || phase !== 'play') return null;
-  if (!aim && kickHeld) {                             // Space kick: aimed with the arrows, power from how long it's held
-    return { power: kickCharge, f: sharpen(spreadFor(human.x, human.y, kickDir[0], kickDir[1], kickCharge, 'kick')) };
-  }
-  if (!aim) return null;
+  if (!human || ball.holder !== human || phase !== 'play' || !aim) return null;
   const dx = aim.sx - mouse.x, dy = aim.sy - mouse.y, len = hyp(dx, dy);
   if (len < 12) return { power: 0, f: null };
   const power = clamp(len / FULL_DRAG, 0, 1);
@@ -1408,11 +1382,6 @@ function aimInfo() {
 }
 // with a Perfect kick switched on, the landing area is a pinpoint
 function sharpen(f) { if (game.arm[me].perfect > 0) { f.sL = 0.3; f.sT = 0.3; } return f; }
-function releaseKick() {
-  const a = aimInfo();
-  kickHeld = false; kickCharge = 0;
-  if (a && a.f) act({ a: 'kick', dx: a.f.dx, dy: a.f.dy, power: a.power, type: 'kick' });
-}
 function releaseAim() {
   const a = aimInfo(), type = aim && aim.type;
   aim = null;
@@ -1458,7 +1427,6 @@ cv.addEventListener('pointerdown', e => {
   }
   if (human && ball.holder === human && phase === 'play') {
     aim = { type: e.button === 0 ? 'kick' : 'hb', btn: e.button, sx: e.clientX, sy: e.clientY };
-    kickHeld = false; kickCharge = 0;                 // a drag takes over from a Space kick
     try { cv.setPointerCapture(e.pointerId); } catch (_) { /* fine without capture */ }
   } else if (e.button === 0) {
     const p = pickTeammate(e.clientX, e.clientY);
@@ -1479,36 +1447,16 @@ cv.addEventListener('pointerup', e => {
 cv.addEventListener('pointercancel', () => { aim = null; });
 cv.addEventListener('wheel', e => {
   e.preventDefault();
-  cam.zoom = clamp(cam.zoom * Math.exp(-e.deltaY * 0.0012), 0.45, 2.6);
+  cam.zoom = clamp(cam.zoom * Math.exp(-(e.deltaY || e.deltaX) * 0.0012), 0.45, 2.6);   // holding Shift turns the wheel sideways
 }, { passive: false });
 const BLOCK = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space']);
-const MODS = new Set(['ControlLeft', 'ControlRight', 'ShiftLeft', 'ShiftRight', 'AltLeft', 'AltRight', 'MetaLeft', 'MetaRight']);
-// Ctrl is the boost, and Ctrl+W closes the tab. A page only gets Ctrl+W when it's full screen with the
-// keyboard locked, so a match goes full screen on your first key. Where it can't, leaving asks first.
-let lockTried = false;
-function lockKeys() {
-  if (lockTried || !document.fullscreenEnabled || document.fullscreenElement) return;
-  lockTried = true;
-  document.documentElement.requestFullscreen({ navigationUI: 'hide' })
-    .then(() => navigator.keyboard && navigator.keyboard.lock && navigator.keyboard.lock())
-    .catch(() => { /* stays in the window; the leave check below still covers Ctrl+W */ });
-}
-window.addEventListener('beforeunload', e => { if (running) { e.preventDefault(); e.returnValue = ''; } });
 window.addEventListener('keydown', e => {
-  if (BLOCK.has(e.code) || (running && !paused && e.ctrlKey)) e.preventDefault();   // no browser shortcuts mid-boost
+  if (BLOCK.has(e.code)) e.preventDefault();
   keys[e.code] = true;
-  if (running && !paused && !MODS.has(e.code)) lockKeys();
   if (e.repeat) return;
   if (e.code === 'KeyQ') takeNearest();
-  if (e.code === 'Space' && running && !paused) {
-    if (human && ball.holder === human && phase === 'play') {
-      if (!aim) { kickHeld = true; kickCharge = 0; kickDir = arrowDir() || [human.fx, human.fy]; }   // starts the way you're facing
-    }
-    else if (contestFor(human)) act({ a: 'shove' });  // lining up for a mark
-    else diveHeld = true;
-  }
-  if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
-    shiftAt = performance.now();
+  if (e.code === 'Space') {
+    spaceAt = performance.now();
     if (running && !paused) {
       const [x, y] = readKeys();
       if (contestFor(human)) act({ a: 'jump', x, y });   // the ball's dropping near you: jump for it
@@ -1520,15 +1468,13 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => {
   keys[e.code] = false;
-  if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
-    const held = shiftTackle();
-    shiftAt = 0;
-    if (held && !diveHeld) { const [x, y] = readKeys(); act({ a: 'dive', x, y }); }   // let go of a held Shift: dive
+  if (e.code === 'Space') {
+    const held = tackleHeld();
+    spaceAt = 0;
+    if (held) { const [x, y] = readKeys(); act({ a: 'dive', x, y }); }   // let go of a held Space: dive
   }
-  if (e.code === 'Space' && kickHeld) releaseKick();
-  else if (e.code === 'Space' && diveHeld) { diveHeld = false; if (!shiftTackle()) { const [x, y] = readKeys(); act({ a: 'dive', x, y }); } }
 });
-window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; aim = null; diveHeld = false; kickHeld = false; shiftAt = 0; if (human) human.charge = 0; });
+window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; aim = null; spaceAt = 0; if (human) human.charge = 0; });
 
 // ---------------------------------------------------------------- overlay
 const overlay = document.getElementById('overlay');
@@ -1618,7 +1564,7 @@ function newGame() {
   cam.x = 0; cam.y = 0; cam.s = baseScale();
   started = true;
 }
-function play() { overlay.hidden = true; running = true; paused = false; lockTried = false; last = performance.now(); }
+function play() { overlay.hidden = true; running = true; paused = false; last = performance.now(); }
 // The game can sit inside a page of the same site (the Adoptic staff portal frames it). Then that page's
 // address is the one to share and to clear; inside anyone else's page (a claude.ai preview) it can't be read.
 function hostPage() { try { return window.top.location.href ? window.top : null; } catch (_) { return null; } }
@@ -1645,7 +1591,7 @@ function togglePause() {
   if (!running) return;
   if (net.mode === 'guest') { if (net.conn && net.conn.open) net.conn.send({ t: 'act', a: 'pause' }); return; }
   paused = !paused;
-  if (paused) { aim = null; diveHeld = false; kickHeld = false; shiftAt = 0; if (human) human.charge = 0; menu('paused'); }
+  if (paused) { aim = null; spaceAt = 0; if (human) human.charge = 0; menu('paused'); }
   else { overlay.hidden = true; last = performance.now(); }
 }
 function fullTime() {
@@ -1784,8 +1730,7 @@ function applyAction(team, m) {
     if (m.a === 'leap') tryLeap(c);
     else if (m.a === 'dive') releaseDive(team);
     else if (contestFor(c)) startJump(c); else tryLeap(c);
-  } else if (m.a === 'shove') { if (contestFor(c)) doShove(c); }
-  else if (m.a === 'power') { const n = Number(m.n); if (n >= 0 && n < POWERS.length) usePower(team, n); }
+  } else if (m.a === 'power') { const n = Number(m.n); if (n >= 0 && n < POWERS.length) usePower(team, n); }
   else if (m.a === 'route') setRoute(team, Number(m.i), m.pts);
   else if (m.a === 'unroute') { const p = players[Number(m.i)]; if (p && p.team === team) p.route = null; }
 }
@@ -1911,7 +1856,7 @@ function applySnapshot(s) {
   }
   plan = Array.isArray(s.pl) ? { kind: s.pl[0] === 1 ? 'mark' : 'token', team: s.pl[1], left: s.pl[2] } : null;
   if (Array.isArray(s.tk)) game.tokens = s.tk.map(q => ({ x: q[0], y: q[1], wait: q[2] ? 0 : 1 }));
-  if (s.pa && !paused) { paused = true; aim = null; kickHeld = false; diveHeld = false; menu('paused'); }
+  if (s.pa && !paused) { paused = true; aim = null; spaceAt = 0; menu('paused'); }
   else if (!s.pa && paused) { paused = false; overlay.hidden = true; }
 }
 // between snapshots, glide everything toward where the host last said it was heading
@@ -2293,13 +2238,6 @@ function render() {
     const top = sy - (PR * (1 + c.jump * 0.55) + 0.5) * S - 7;
     ctx.fillStyle = c === human ? rgba(AMBER, 1) : rgba(TEAM[c.team].light, 1);
     ctx.beginPath(); ctx.moveTo(sx - 6, top - 8); ctx.lineTo(sx + 6, top - 8); ctx.lineTo(sx, top); ctx.closePath(); ctx.fill();
-  }
-  if (a && !aim) {                                    // Space kick: power ring around your player
-    const [px, py] = w2s(human.x, human.y), rr = PR * S + 14;
-    ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.arc(px, py, rr, 0, Math.PI * 2); ctx.stroke();
-    ctx.strokeStyle = rgba(AMBER, 1);
-    ctx.beginPath(); ctx.arc(px, py, rr, -Math.PI / 2, -Math.PI / 2 + a.power * Math.PI * 2); ctx.stroke();
   }
   if (a && aim) {
     ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 2;
