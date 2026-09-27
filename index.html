@@ -160,7 +160,7 @@
       <dt><kbd>Left-click</kbd></dt><dd>Kick. Hold, pull back, let go. The further you pull, the longer the kick and the wider the area it could land in.</dd>
       <dt><kbd>Right-click</kbd></dt><dd>Handball, the same way. Shorter and safer.</dd>
       <dt><kbd>Click a teammate</kbd></dt><dd>Take them over whenever you don't have the ball. Run under it to catch it.</dd>
-      <dt><kbd>&larr;</kbd><kbd>&rarr;</kbd></dt><dd>Switch between your players near the ball and near where it's coming down, left to right</dd>
+      <dt><kbd>&larr;</kbd><kbd>&rarr;</kbd></dt><dd>Switch between your players near the ball and near where it's coming down, left to right. Every kick puts you on the one nearest where it's coming down to start with.</dd>
       <dt><kbd>Q</kbd></dt><dd>Take over the teammate closest to where the ball is coming down</dd>
       <dt><kbd>Space</kbd></dt><dd>Tap to jump: for the mark when the ball's dropping near you, and from right behind someone you climb them for a specky. A jump also clears a ground slam. Hold to wind up a diving tackle straight away, and let go to dive. The dive knocks down any opponent it hits, ball or not.</dd>
       <dt><kbd>Shift</kbd></dt><dd>Tap to charge: a burst forward nobody can tackle. Hit an opponent and you stop dead while they go down and fly off with your speed, ball or not. Hold to sprint (it uses the bar under your player); sprint into an opponent who hasn't got the ball and you knock them out of the way. That's also how you push someone off the spot in a marking contest.</dd>
@@ -1369,6 +1369,10 @@ function update(dt) {
   ball.exclude = ball.exclude.filter(e => (e[1] -= dt) > 0);
   if (ball.holder) { ball.holder.holdTime += dt; if (ball.holder.grace > 0) ball.holder.grace -= dt; }
   computeFocus();
+  if (phase === 'play' && !ball.holder && ball.state === 'air' && ball.flight !== game.switchedFor) {
+    game.switchedFor = ball.flight;                    // every kick: you go to your player nearest where it's coming down
+    for (const t of [HOME, AWAY]) if (active[t]) setHuman(nearestInZone(t, focus.x, focus.y, false));
+  }
   const fz = zoneAt(focus.x);
   if (fz !== game.focusZone) {                         // the ball is headed into another third: jump to your player there
     game.focusZone = fz;
