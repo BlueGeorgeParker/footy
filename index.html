@@ -835,12 +835,6 @@ function runRoute(p, dt, boost) {
   steer(p, tx, ty, p.spd * moveMul(p) * sprintMul(p, !last || far > 4 || !!boost), last ? 0.6 : null, dt);
   return true;
 }
-// in the slow motion after a mark, drawn runners aren't slowed: that's their head start
-function runnersAhead(dt) {
-  if (dt <= 0 || phase !== 'play') return;
-  for (const p of players) if (p.route && p.route.go && !controlled(p) && !waitingRun(p) && canAct(p) && ball.holder !== p) runRoute(p, dt);
-  keepInside();
-}
 // where a runner will be t seconds into their run, to lead them with a kick
 function routeAt(p, pts, from, t) {
   let left = p.spd * (p.en > 0.3 ? 1.35 : 1) * t, x = p.x, y = p.y;
@@ -2320,7 +2314,6 @@ function frame(now) {
       if (plan) scale = plan.kind === 'token' ? 0 : PLAN.markSpeed;
       else if (game.slowmo > 0) { game.slowmo -= dt; scale = 0.3; }   // a specky
       if (scale > 0) update(dt * scale);
-      if (plan && plan.kind === 'mark') runnersAhead(dt * (1 - scale));
       if (plan && (plan.left -= dt) <= 0) endPlan();
     }
     localTick(dt);
