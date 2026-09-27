@@ -210,7 +210,8 @@ const QUARTER = 300;
 const DIVE = { charge: 0.2, dur: 0.38, down: 0.65, reach: 0.8 };  // your tackle: pull with the mouse or hold Space (reach: extra metres it grabs)
 const TACKLE = { min: 3, max: 10, sL: [0.25, 2.0], sT: [0.2, 1.4] };  // metres, and the landing spread along / across, like KICK
 const LUNGE = { range: 4.6, windup: [0.55, 0.85], dur: 0.34, spd: 12.5, down: 0.75 }; // theirs
-const LEAP = { dur: 0.28, spd: 15, cd: 1.1, reach: 4.5, hit: 18, fly: 0.5 };   // a person's charge: whoever it hits leaves at hit m/s
+const LEAP = { dur: 0.28, spd: 15, cd: 1.1, reach: 4.5, fly: 0.5 };   // a sidestep, and the base for your charge
+const CHARGE = { dur: 0.4, spd: 21 };             // your Shift tap: twice as far as a sidestep (about 8 m)
 const TAP_HOLD = 180;                              // ms: let go sooner than this and it's a tap (Space: jump, Shift: charge)
 const SPRINT = { mult: 1.5, drain: 0.45, fill: 0.16 };  // the Shift boost; stamina 0..1 per second
 const KNOCK = { reach: 0.4, spd: 16, cost: 0.1 };  // boosting into someone knocks them flying; cost = stamina per knock
@@ -746,14 +747,14 @@ function diveContact(p, L) {
   }
   return false;
 }
-function startLeap(p, dx, dy) {
+function startLeap(p, dx, dy, dur = LEAP.dur, spd = LEAP.spd) {
   bump('leap');
-  p.leapT = LEAP.dur; p.leapDx = dx; p.leapDy = dy; p.leapCd = LEAP.cd; p.charge = 0;
+  p.leapT = dur; p.leapDur = dur; p.leapSpd = spd; p.leapDx = dx; p.leapDy = dy; p.leapCd = LEAP.cd; p.charge = 0;
 }
 function tryLeap(p) {
   if (!p || !canAct(p) || p.leapCd > 0 || p.giantT > 0) return;
   const [dx, dy] = moveDir(p);
-  startLeap(p, dx, dy);
+  startLeap(p, dx, dy, CHARGE.dur, CHARGE.spd);
 }
 // dives, leaps and lying on the deck take over from normal running
 function moveSpecial(p, dt) {
@@ -786,7 +787,8 @@ function moveSpecial(p, dt) {
   }
   if (p.leapT > 0) {
     p.leapT -= dt;
-    p.vx = p.leapDx * LEAP.spd; p.vy = p.leapDy * LEAP.spd;
+    const ls = p.leapSpd || LEAP.spd;
+    p.vx = p.leapDx * ls; p.vy = p.leapDy * ls;
     p.x += p.vx * dt; p.y += p.vy * dt;
     p.trail.push([p.x, p.y, 0.22]);
     if (controlled(p)) {                              // a person's charge: the first opponent in front takes all of it
@@ -799,7 +801,7 @@ function moveSpecial(p, dt) {
         const inBack = (v.fx * ox + v.fy * oy) / d > 0.55;
         const kx = p.leapDx + ox / d * 0.3, ky = p.leapDy + oy / d * 0.3, kl = hyp(kx, ky);
         v.bumpCd = 0;
-        if (flatten(v, kx / kl, ky / kl, LEAP.hit, 'charged')) v.flyT = LEAP.fly;
+        if (flatten(v, kx / kl, ky / kl, ls * 1.2, 'charged')) v.flyT = LEAP.fly;   // they take your momentum and then some
         p.leapT = 0; p.vx *= 0.1; p.vy *= 0.1;          // you stop dead
         if (inBack && contestFor(v)) awardFree(v, 'PUSH IN THE BACK');
         return true;
@@ -2196,7 +2198,8 @@ function drawGlow(p) {
 }
 function drawPlayer(p, S) {
   const t = TEAM[p.team];
-  const leap = p.leapT > 0 ? Math.sin(Math.PI * (1 - p.leapT / LEAP.dur)) : 0, up = p.lift || 0;
+  const ld = p.leapDur || (controlled(p) ? CHARGE.dur : LEAP.dur);   // a friend's screen only hears how long is left
+  const leap = p.leapT > 0 ? Math.sin(Math.PI * clamp(1 - p.leapT / ld, 0, 1)) : 0, up = p.lift || 0;
   const r = PR * (p.giantT > 0 ? 2 : 1) * (1 + p.jump * 0.55 + leap * 0.3 + up * 0.12), lift = p.jump * 1.3 + leap * 1.8 + up * 1.5;
   if (p.giantT > 0) {                                 // Gigaplayer: a pulsing halo
     ctx.fillStyle = rgba(t.light, 0.16 + 0.08 * Math.sin(game.t * 8));
