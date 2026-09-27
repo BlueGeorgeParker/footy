@@ -22,9 +22,11 @@ The match runs in the host's browser, so the host keeps their tab open and in fr
 | Click a teammate | Take them over when you don't have the ball |
 | Q | Take over the teammate closest to where the ball is coming down |
 | Space | Tap: jump the way you're running (can't be tackled mid-jump), or jump for a mark when the ball's dropping near you. Hold: wind up a diving tackle, let go to dive |
-| Shift | Hold for a speed boost; run into an opponent without the ball to knock them out of the way |
+| Shift | Tap: charge forward (can't be tackled mid-charge); hit an opponent and they fly off with your speed. Hold: sprint; run into an opponent without the ball to knock them out of the way |
 | 1-5 | Power-ups (5 is the ground slam) |
 | Wheel | Zoom |
 | P | Pause |
+
+Whenever the ball's out of play, drag your players to where you want them; the restart waits while you hold someone.
 
 Everything is in `index.html`. Save that one file to play the computer offline.

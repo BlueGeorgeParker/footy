@@ -162,15 +162,16 @@
       <dt><kbd>Click a teammate</kbd></dt><dd>Take them over whenever you don't have the ball. Run under it to catch it.</dd>
       <dt><kbd>Q</kbd></dt><dd>Take over the teammate closest to where the ball is coming down</dd>
       <dt><kbd>Space</kbd></dt><dd>Tap to jump: for the mark when the ball's dropping near you, and from right behind someone you climb them for a specky. A jump also clears a ground slam. Hold to wind up a diving tackle straight away, and let go to dive. The dive knocks down any opponent it hits, ball or not.</dd>
-      <dt><kbd>Shift</kbd></dt><dd>Press for a quick burst forward: nobody can tackle you mid-burst, so time it against a glowing tackler. Keep holding for a speed boost (it uses the bar under your player). Run into an opponent who hasn't got the ball and you knock them out of the way. That's also how you push someone off the spot in a marking contest.</dd>
+      <dt><kbd>Shift</kbd></dt><dd>Tap to charge: a burst forward nobody can tackle. Hit an opponent and you stop dead while they go down and fly off with your speed, ball or not. Hold to sprint (it uses the bar under your player); sprint into an opponent who hasn't got the ball and you knock them out of the way. That's also how you push someone off the spot in a marking contest.</dd>
       <dt><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><kbd>5</kbd></dt><dd>Power-ups: perfect kick, guaranteed mark, Gigaplayer, Zone Pass, ground slam. Press the number or click it in the bar at the bottom. Each one recharges after you use it.</dd>
       <dt><kbd>Wheel</kbd></dt><dd>Zoom</dd>
       <dt><kbd>P</kbd></dt><dd>Pause</dd>
     </dl>
-    <p class="rule">Take a mark and you get 10 seconds of slow motion to draw runs: drag from a teammate to where they should go. They're off the moment you let go, and hold the spot at the end. Take one over mid-run and they keep to the line until you steer. Carry the ball over a play token and the game freezes for 5 seconds to do the same.</p>
+    <p class="rule">Take a mark or get a free kick and you get 10 seconds of slow motion to draw runs: drag from a teammate to where they should go. They're off the moment you let go, and hold the spot at the end. Take one over mid-run and they keep to the line until you steer. Carry the ball over a play token and the game freezes for 5 seconds to do the same.</p>
+    <p class="rule">Whenever the ball's out of play (before a bounce, after a score, for a throw-in or a free kick) drag your players to where you want them. The restart waits while you're holding someone.</p>
     <p class="rule">Nobody crosses the bright walls except with a Zone Pass. Shove, knock or climb someone from behind while the ball's in the air and it's a free kick against you, so time your specky.</p>
-    <p class="rule">Opponents glow red before they dive at you. When the ring closes in on them, burst out of the way, or boost into them before they go.</p>
-    <p class="rule">Catch a kick of 15&nbsp;m or more before it bounces and it's a mark: nobody can tackle you until you kick or run more than 5&nbsp;m off the spot. Get caught holding the ball too long and it's a free kick to them.</p>
+    <p class="rule">Opponents glow red before they dive at you. When the ring closes in on them, charge out of the way, or sprint into them before they go.</p>
+    <p class="rule">Catch a kick of 15&nbsp;m or more before it bounces and it's a mark: nobody can tackle, knock, charge or slam you until you kick or run more than 5&nbsp;m off the spot. The slow motion ends the moment the call changes: you play on, or the ball goes the other way. Get caught holding the ball too long and it's a free kick to them.</p>
   </div>
 </div>
 
@@ -206,8 +207,8 @@ const QUARTER = 300;
 // power moves. spd in m/s, times in seconds
 const DIVE = { charge: 0.2, dur: 0.38, spd: [15, 25.5], down: 0.65, reach: 0.8 };  // your tackle: hold Space to wind it up (reach: extra metres it grabs)
 const LUNGE = { range: 4.6, windup: [0.55, 0.85], dur: 0.34, spd: 12.5, down: 0.75 }; // theirs
-const LEAP = { dur: 0.28, spd: 15, cd: 1.1, reach: 4.5 };
-const TAP_HOLD = 180;                              // ms: let go of Space sooner than this and it's a jump, not a dive
+const LEAP = { dur: 0.28, spd: 15, cd: 1.1, reach: 4.5, hit: 18, fly: 0.5 };   // a person's charge: whoever it hits leaves at hit m/s
+const TAP_HOLD = 180;                              // ms: let go sooner than this and it's a tap (Space: jump, Shift: charge)
 const SPRINT = { mult: 1.5, drain: 0.45, fill: 0.16 };  // the Shift boost; stamina 0..1 per second
 const KNOCK = { reach: 0.4, spd: 16, cost: 0.1 };  // boosting into someone knocks them flying; cost = stamina per knock
 const GATHER = 10;                                // metres from where a kick comes down that players close in for the mark
@@ -319,7 +320,7 @@ function initPlayers() {
         charge: 0, windup: rand(...LUNGE.windup), lunge: null, down: 0,
         leapT: 0, leapCd: 0, leapDx: 1, leapDy: 0, trail: [],
         giantT: 0, zoneT: 0, outX: null, jumpT: 0, jumpBoost: 0, climb: null, caught: false, lift: 0,
-        jumpAt: JUMP.dur / 2 + rand(-0.15, 0.15), jumpFlight: -1, shoveCd: 0, bumpCd: 0, route: null, slamT: 0, flyT: 0,
+        jumpAt: JUMP.dur / 2 + rand(-0.15, 0.15), jumpFlight: -1, shoveCd: 0, bumpCd: 0, route: null, slamT: 0, flyT: 0, placed: null,
       });
     });
   }
@@ -410,7 +411,7 @@ function updPlanHud() {
 // ---------------------------------------------------------------- restarts
 function setupBounce() {
   for (const p of players) {
-    p.x = p.bx; p.y = p.by; p.vx = p.vy = 0; p.stun = 0; p.jump = 0; p.fx = attDir(p.team); p.fy = 0;
+    p.x = p.placed ? p.placed.x : p.bx; p.y = p.placed ? p.placed.y : p.by; p.vx = p.vy = 0; p.stun = 0; p.jump = 0; p.fx = attDir(p.team); p.fy = 0;
     p.lunge = null; p.down = 0; p.charge = 0; p.leapT = 0; p.trail = [];
     p.route = null; p.jumpT = 0; p.climb = null; p.giantT = 0; p.zoneT = 0; p.outX = null; p.slamT = 0; p.flyT = 0;
   }
@@ -486,6 +487,7 @@ function doFreeKick() {
   f.p.x = f.x; f.p.y = f.y; f.p.vx = f.p.vy = 0;
   phase = 'play';
   give(f.p, { free: true });
+  freeKickCall(f.p);
 }
 function endQuarter() {
   const names = ['QUARTER TIME', 'HALF TIME', 'THREE QUARTER TIME', 'FULL TIME'];
@@ -640,6 +642,7 @@ function tackle(o, h) {
   if (h.holdTime > 2.8) {
     h.stun = 0.9;
     give(o, { free: true });
+    freeKickCall(o);
     banner('HOLDING THE BALL', '#ffffff', 1.4);
   } else {
     h.stun = 0.75; o.stun = 0.25;
@@ -660,7 +663,7 @@ function inputDir(p) {
   return controlled(p) && (pd.x || pd.y) ? [pd.x, pd.y] : null;
 }
 const moveDir = p => inputDir(p) || [p.fx, p.fy];
-let spaceAt = 0;                                      // when Space went down (0: it's up)
+let spaceAt = 0, shiftAt = 0;                        // when Space / Shift went down (0: it's up)
 const boostHeld = () => !!(keys.ShiftLeft || keys.ShiftRight);
 const tackleHeld = () => !!spaceAt;
 const diveSpeed = c => lerp(DIVE.spd[0], DIVE.spd[1], c);
@@ -745,6 +748,22 @@ function moveSpecial(p, dt) {
     p.vx = p.leapDx * LEAP.spd; p.vy = p.leapDy * LEAP.spd;
     p.x += p.vx * dt; p.y += p.vy * dt;
     p.trail.push([p.x, p.y, 0.22]);
+    if (controlled(p)) {                              // a person's charge: the first opponent in front takes all of it
+      for (const v of players) {
+        if (v.team === p.team || v.down > 0 || v.leapT > 0 || v.slamT > 0 || v.climb === p) continue;
+        const ox = v.x - p.x, oy = v.y - p.y, d = hyp(ox, oy) || 0.01;
+        if (d >= PR * 2 + 0.2 || (ox * p.leapDx + oy * p.leapDy) / d < 0) continue;
+        if (v.giantT > 0) { p.leapT = 0; p.down = 0.9; p.vx *= -0.3; p.vy *= -0.3; bump('bounced'); return true; }   // off a Gigaplayer
+        if (game.arm[v.team].sure > 0 && contestFor(v)) continue;   // a guaranteed mark holds their ground
+        const inBack = (v.fx * ox + v.fy * oy) / d > 0.55;
+        const kx = p.leapDx + ox / d * 0.3, ky = p.leapDy + oy / d * 0.3, kl = hyp(kx, ky);
+        v.bumpCd = 0;
+        if (flatten(v, kx / kl, ky / kl, LEAP.hit, 'charged')) v.flyT = LEAP.fly;
+        p.leapT = 0; p.vx *= 0.1; p.vy *= 0.1;          // you stop dead
+        if (inBack && contestFor(v)) awardFree(v, 'PUSH IN THE BACK');
+        return true;
+      }
+    }
     if (p.leapT <= 0) { const sp = ball.holder === p ? 7.3 : p.spd; p.vx = p.leapDx * sp; p.vy = p.leapDy * sp; }
     return true;
   }
@@ -774,6 +793,13 @@ function playOnCheck() {
     if (controlled(h) && plan && plan.kind === 'mark' && plan.team === h.team) endPlan();
   }
 }
+// put a player down where you dropped them. They stay there until the ball's back in play,
+// and while you're holding someone the restart waits for you
+function place(p, x, y) {
+  [x, y] = clampOval(clamp(x, p.zx0 + PR, p.zx1 - PR), y, 0.97);
+  p.x = x; p.y = y; p.vx = p.vy = 0; p.placed = { x, y };
+  game.placeHold = 0.4;
+}
 function checkOut() {
   if (ball.holder || ball.frozen || inField(ball.x, ball.y)) return;
   const end = ball.x > 0 ? 1 : -1;
@@ -795,6 +821,13 @@ function startPlan(kind, team) {
   bump('plan_' + kind);
 }
 function endPlan() { plan = null; }
+// a free kick your way is a call like a mark: the same slow motion to draw runs. Another call your way
+// tops the clock back up; a call the other way ends yours
+function freeKickCall(p) {
+  if (plan && plan.kind === 'mark' && plan.team === p.team) { plan.left = PLAN.markSecs; return; }
+  if (plan) endPlan();
+  startPlan('mark', p.team);
+}
 // a runner joins their line at the point nearest them, never back at its start
 function joinAt(p, pts) {
   let best = 1, bd = Infinity;
@@ -923,6 +956,7 @@ function awardFree(p, reason) {
   Object.assign(ball, { x: p.x, y: p.y, z: 1, vx: 0, vy: 0, vz: 0 });
   bump('free');
   give(p, { free: true });
+  freeKickCall(p);
   banner(reason, '#ffffff', 1.5);
 }
 function doShove(p) {
@@ -993,11 +1027,12 @@ function aiContest(dt) {
 }
 // bowled over by a Gigaplayer, or knocked flying by someone boosting
 function flatten(v, ux, uy, spd = 9, why = 'flattened') {
-  if (v.bumpCd > 0) return;
+  if (v.bumpCd > 0 || (ball.holder === v && ball.protected)) return false;   // on a mark or a free kick: untouchable
   v.bumpCd = 1.2; v.down = 0.8; v.lunge = null; v.charge = 0; v.jumpT = 0; v.climb = null; v.slamT = 0;
   v.vx = ux * spd; v.vy = uy * spd;
   bump(why);
   if (ball.holder === v) spill(v, true);
+  return true;
 }
 // a person boosting knocks anyone in their way off to the side. Not the ball carrier: that's still a tackle
 function boostKnocks() {
@@ -1032,8 +1067,7 @@ function groundSlam(p) {
     if (d > SLAM.r) continue;
     const ux = d > 0.01 ? ox / d : 1, uy = d > 0.01 ? oy / d : 0;
     v.bumpCd = 0;
-    flatten(v, ux, uy, lerp(SLAM.spd[0], SLAM.spd[1], d / SLAM.r), 'slammed');
-    v.down = SLAM.down; v.flyT = SLAM.fly;
+    if (flatten(v, ux, uy, lerp(SLAM.spd[0], SLAM.spd[1], d / SLAM.r), 'slammed')) { v.down = SLAM.down; v.flyT = SLAM.fly; }
   }
 }
 // the shockwave ring, drawn on both screens
@@ -1161,6 +1195,7 @@ function gathers(p) {
 function aiMove(p, dt) {
   if (ball.holder === p) { aiCarry(p, dt); return; }
   if (waitingRun(p)) { steer(p, p.x, p.y, 0, 0, dt); return; }   // stood still till their run starts
+  if (p.placed) { steer(p, p.placed.x, p.placed.y, p.spd * 0.6, 0.2, dt); return; }   // you put them there
   if (phase === 'play' && runRoute(p, dt)) return;   // running a drawn play
   let tx, ty, spd = p.spd, arrive = 1.5, rush = false;
   if (phase === 'prebounce' || phase === 'goal' || phase === 'quarter') {
@@ -1322,9 +1357,14 @@ function keepInside() {
 }
 function update(dt) {
   game.t += dt;
+  // the slow motion lasts only while its call stands: that side still has the ball on its mark or free kick
+  if (plan && plan.kind === 'mark' && !(ball.holder && ball.holder.team === plan.team && ball.protected)) endPlan();
   if (net.mode !== 'guest') { const [x, y] = readKeys(); Object.assign(pad[me], { x, y, space: tackleHeld(), sprint: boostHeld(), fx: null, fy: null }); }
   if (phase === 'play') { game.clock -= dt; if (game.clock <= 0) { game.clock = 0; endQuarter(); } }
-  if (phaseT > 0) { phaseT -= dt; if (phaseT <= 0) phaseDone(); }
+  if (phaseT > 0) {
+    if (game.placeHold > 0) game.placeHold -= dt;    // someone's being put somewhere: the restart waits
+    else { phaseT -= dt; if (phaseT <= 0) phaseDone(); }
+  }
   ball.exclude = ball.exclude.filter(e => (e[1] -= dt) > 0);
   if (ball.holder) { ball.holder.holdTime += dt; if (ball.holder.grace > 0) ball.holder.grace -= dt; }
   computeFocus();
@@ -1336,6 +1376,7 @@ function update(dt) {
     }
   }
   for (const p of players) {
+    if (phase === 'play' && p.placed) p.placed = null;   // the ball's live again: back to their own game
     if (p.jump > 0) p.jump = Math.max(0, p.jump - dt);
     if (p.stun > 0) p.stun = Math.max(0, p.stun - dt);
     p.leadT -= dt; if (p.leadT <= 0) newLead(p);
@@ -1378,7 +1419,9 @@ function update(dt) {
 }
 // what only this browser needs each frame, whoever runs the match
 function localTick(dt) {
-  hoverP = ball.holder !== human ? pickTeammate(mouse.x, mouse.y) : null;
+  if (placing && !canPlace()) placing = null;
+  if (placing && placing.moved) sendPlace(placing, performance.now());
+  hoverP = canPlace() ? pickTeammate(mouse.x, mouse.y, true) : ball.holder !== human ? pickTeammate(mouse.x, mouse.y) : null;
   for (let i = waves.length - 1; i >= 0; i--) if ((waves[i].t += dt) >= 0.5) waves.splice(i, 1);
   updateCamera(dt);
   updPowersHud(); updPlanHud();
@@ -1423,11 +1466,11 @@ function releaseAim() {
   aim = null;
   if (a && a.f) act({ a: 'kick', dx: a.f.dx, dy: a.f.dy, power: a.power, type });
 }
-function pickTeammate(sx, sy) {
+function pickTeammate(sx, sy, andYou) {
   const [wx, wy] = s2w(sx, sy);
   let best = null, bd = Math.max(2.2, 22 / cam.s);
   for (const p of players) {
-    if (p.team !== me || p === human) continue;
+    if (p.team !== me || (p === human && !andYou)) continue;
     const d = hyp(p.x - wx, p.y - wy);
     if (d < bd) { bd = d; best = p; }
   }
@@ -1439,6 +1482,15 @@ function takeNearest() {
 }
 document.addEventListener('contextmenu', e => e.preventDefault());
 let drawing = null;                                   // a run being drawn: { i: player id, pts }
+// whenever the ball's out of play you can pick your players up and put them somewhere else
+let placing = null;                                   // { i: player id, sx, sy: where the press was, moved, sentAt }
+const canPlace = () => running && !paused && phase !== 'play' && phase !== 'fulltime';
+function sendPlace(pl, now) {
+  if (net.mode === 'guest' && now - pl.sentAt < 66) return;   // about 15 a second over the wire
+  pl.sentAt = now;
+  const [x, y] = s2w(mouse.x, mouse.y);
+  act({ a: 'place', i: pl.i, x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 });
+}
 const canDraw = () => running && !paused && !!plan && plan.team === me;
 function finishDrawing() {
   const d = drawing;
@@ -1452,6 +1504,14 @@ cv.addEventListener('pointerdown', e => {
   mouse.x = e.clientX; mouse.y = e.clientY;
   if (!running || paused || (e.button !== 0 && e.button !== 2)) return;
   if (aim && e.button !== aim.btn) { aim = null; return; }   // the other button calls the kick off
+  if (canPlace() && e.button === 0) {                 // ball's out of play: pick a player up (a click without a drag takes them over)
+    const p = pickTeammate(e.clientX, e.clientY, true);
+    if (p) {
+      placing = { i: p.id, sx: e.clientX, sy: e.clientY, moved: false, sentAt: 0 };
+      try { cv.setPointerCapture(e.pointerId); } catch (_) { /* fine without capture */ }
+      return;
+    }
+  }
   if (canDraw()) {                                    // drawing a play: grab a teammate and drag their run
     const p = pickTeammate(e.clientX, e.clientY);
     if (p && e.button === 0) {
@@ -1474,6 +1534,7 @@ cv.addEventListener('pointermove', e => {
   mouse.x = e.clientX; mouse.y = e.clientY;
   // a second button pressed while one's held arrives here, not as a pointerdown: it calls the kick off too
   if (aim && (e.buttons & (aim.btn === 0 ? 2 : 1))) aim = null;
+  if (placing && !placing.moved && hyp(e.clientX - placing.sx, e.clientY - placing.sy) > 5) placing.moved = true;
   if (!drawing) return;
   const [wx, wy] = s2w(mouse.x, mouse.y), q = drawing.pts[drawing.pts.length - 1];
   if (hyp(wx - q[0], wy - q[1]) > 1.2 && drawing.pts.length < 80) drawing.pts.push([wx, wy]);
@@ -1481,9 +1542,16 @@ cv.addEventListener('pointermove', e => {
 cv.addEventListener('pointerup', e => {
   mouse.x = e.clientX; mouse.y = e.clientY;
   if (drawing && e.button === 0) { finishDrawing(); return; }
+  if (placing && e.button === 0) {
+    const pl = placing;
+    placing = null;
+    if (pl.moved) sendPlace(pl, Infinity);
+    else if (players[pl.i] !== human) act({ a: 'pick', i: pl.i });
+    return;
+  }
   if (aim && e.button === aim.btn) releaseAim();
 });
-cv.addEventListener('pointercancel', () => { aim = null; });
+cv.addEventListener('pointercancel', () => { aim = null; placing = null; });
 cv.addEventListener('wheel', e => {
   e.preventDefault();
   cam.zoom = clamp(cam.zoom * Math.exp(-(e.deltaY || e.deltaX) * 0.0012), 0.45, 2.6);   // holding Shift turns the wheel sideways
@@ -1495,15 +1563,17 @@ window.addEventListener('keydown', e => {
   if (e.repeat) return;
   if (e.code === 'KeyQ') takeNearest();
   if (e.code === 'Space') spaceAt = performance.now();   // winds up a tackle from the press; a quick tap jumps instead
-  if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && running && !paused) {
-    const [x, y] = readKeys();
-    act({ a: 'leap', x, y });                         // the burst, the instant you press, so you can time it against a tackle
-  }                                                   // keep holding and it's the boost
+  if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') shiftAt = performance.now();   // held: sprint; a quick tap: charge
   if (/^Digit[1-9]$/.test(e.code) && running && !paused) act({ a: 'power', n: Number(e.code.slice(5)) - 1 });
   if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
 });
 window.addEventListener('keyup', e => {
   keys[e.code] = false;
+  if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && shiftAt) {
+    const tap = performance.now() - shiftAt < TAP_HOLD;
+    shiftAt = 0;
+    if (tap) { const [x, y] = readKeys(); act({ a: 'leap', x, y }); }   // the charge
+  }
   if (e.code === 'Space' && spaceAt) {
     const tap = performance.now() - spaceAt < TAP_HOLD;
     spaceAt = 0;
@@ -1511,7 +1581,7 @@ window.addEventListener('keyup', e => {
     act({ a: tap ? 'jump' : 'dive', x, y });          // a tap jumps; let go of a hold and you dive
   }
 });
-window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; aim = null; spaceAt = 0; if (human) human.charge = 0; });
+window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; aim = null; spaceAt = 0; shiftAt = 0; placing = null; if (human) human.charge = 0; });
 
 // ---------------------------------------------------------------- overlay
 const overlay = document.getElementById('overlay');
@@ -1628,7 +1698,7 @@ function togglePause() {
   if (!running) return;
   if (net.mode === 'guest') { if (net.conn && net.conn.open) net.conn.send({ t: 'act', a: 'pause' }); return; }
   paused = !paused;
-  if (paused) { aim = null; spaceAt = 0; if (human) human.charge = 0; menu('paused'); }
+  if (paused) { aim = null; spaceAt = 0; shiftAt = 0; placing = null; if (human) human.charge = 0; menu('paused'); }
   else { overlay.hidden = true; last = performance.now(); }
 }
 function fullTime() {
@@ -1769,6 +1839,10 @@ function applyAction(team, m) {
     else startJump(c);
   } else if (m.a === 'power') { const n = Number(m.n); if (n >= 0 && n < POWERS.length) usePower(team, n); }
   else if (m.a === 'route') setRoute(team, Number(m.i), m.pts);
+  else if (m.a === 'place') {
+    const p = players[Number(m.i)], x = Number(m.x), y = Number(m.y);
+    if (p && p.team === team && phase !== 'play' && phase !== 'fulltime' && Number.isFinite(x) && Number.isFinite(y)) place(p, x, y);
+  }
   else if (m.a === 'unroute') { const p = players[Number(m.i)]; if (p && p.team === team) p.route = null; }
 }
 const r1 = v => Math.round(v * 10) / 10, r2 = v => Math.round(v * 100) / 100;
@@ -1895,7 +1969,7 @@ function applySnapshot(s) {
   }
   plan = Array.isArray(s.pl) ? { kind: s.pl[0] === 1 ? 'mark' : 'token', team: s.pl[1], left: s.pl[2] } : null;
   if (Array.isArray(s.tk)) game.tokens = s.tk.map(q => ({ x: q[0], y: q[1], wait: q[2] ? 0 : 1 }));
-  if (s.pa && !paused) { paused = true; aim = null; spaceAt = 0; menu('paused'); }
+  if (s.pa && !paused) { paused = true; aim = null; spaceAt = 0; shiftAt = 0; placing = null; menu('paused'); }
   else if (!s.pa && paused) { paused = false; overlay.hidden = true; }
 }
 // between snapshots, glide everything toward where the host last said it was heading
@@ -2298,7 +2372,7 @@ function render() {
   drawMinimap();
 
   let cur = 'default';
-  if (running && !paused) cur = aim ? 'grabbing' : ball.holder === human ? 'crosshair' : hoverP ? 'pointer' : 'default';
+  if (running && !paused) cur = aim || placing ? 'grabbing' : canPlace() ? (hoverP ? 'grab' : 'default') : ball.holder === human ? 'crosshair' : hoverP ? 'pointer' : 'default';
   if (cv.style.cursor !== cur) cv.style.cursor = cur;
 }
 
@@ -2334,7 +2408,7 @@ requestAnimationFrame(frame);
 // handle for poking at the match from the console
 window.footy = {
   players, ball, game, focus, cam, stats, give, dispose, spreadFor, setHuman, update, aiDispose,
-  net, ctrl, pad, snapshot, applyAction, usePower, startJump, doShove, contestFor, endPlan, landTime, catchBy, active, waves,
+  net, ctrl, pad, snapshot, applyAction, usePower, startJump, doShove, contestFor, endPlan, landTime, catchBy, active, waves, awardFree,
   get phase() { return phase; }, get human() { return human; }, get me() { return me; }, get plan() { return plan; },
 };
 })();
