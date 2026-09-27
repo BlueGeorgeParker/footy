@@ -158,7 +158,7 @@
       <dt><kbd>Right-click</kbd></dt><dd>Handball, the same way. Shorter and safer.</dd>
       <dt><kbd>Click a teammate</kbd></dt><dd>Take them over whenever you don't have the ball. Run under it to catch it.</dd>
       <dt><kbd>Q</kbd></dt><dd>Take over the teammate closest to where the ball is coming down</dd>
-      <dt><kbd>Hold Space</kbd></dt><dd>With the ball: wind up a kick toward your mouse pointer, let go to kick. Without it: wind up a diving tackle, let go to dive. When the ball's dropping near you: shove the nearest opponent.</dd>
+      <dt><kbd>Hold Space</kbd></dt><dd>With the ball: wind up a kick, steer it with the arrow keys (it starts the way you're facing; run with WASD meanwhile), let go to kick. Without it: wind up a diving tackle, let go to dive. When the ball's dropping near you: shove the nearest opponent.</dd>
       <dt><kbd>Shift</kbd></dt><dd>Dash the way you're running: nobody can tackle you mid-dash, so time it against a glowing tackler. Keep holding to sprint. When the ball's dropping near you: jump for it instead. Jump from right behind someone to climb them for a specky.</dd>
       <dt><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><kbd>5</kbd></dt><dd>Power-ups: perfect kick, guaranteed mark, super tackle, Gigaplayer, Zone Pass. Press the number or click it in the bar at the bottom. Each one recharges after you use it.</dd>
       <dt><kbd>Wheel</kbd></dt><dd>Zoom</dd>
@@ -641,12 +641,20 @@ function tackle(o, h) {
 
 // ---------------------------------------------------------------- power moves
 function canAct(p) { return phase === 'play' && p.down <= 0 && !p.lunge && p.leapT <= 0 && p.stun <= 0 && !(p.jumpT > 0); }
-function readKeys() {                                // this browser's WASD as a unit vector
-  const ix = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
-  const iy = (keys.KeyS || keys.ArrowDown ? 1 : 0) - (keys.KeyW || keys.ArrowUp ? 1 : 0);
+function readKeys() {                                // this browser's WASD (or arrows) as a unit vector
+  const arrows = !kickHeld;                           // while winding up a Space kick the arrows aim instead
+  const ix = (keys.KeyD || (arrows && keys.ArrowRight) ? 1 : 0) - (keys.KeyA || (arrows && keys.ArrowLeft) ? 1 : 0);
+  const iy = (keys.KeyS || (arrows && keys.ArrowDown) ? 1 : 0) - (keys.KeyW || (arrows && keys.ArrowUp) ? 1 : 0);
   const l = hyp(ix, iy);
   return l ? [ix / l, iy / l] : [0, 0];
 }
+function arrowDir() {                                 // just the arrow keys, for aiming a Space kick
+  const ix = (keys.ArrowRight ? 1 : 0) - (keys.ArrowLeft ? 1 : 0), iy = (keys.ArrowDown ? 1 : 0) - (keys.ArrowUp ? 1 : 0);
+  const l = hyp(ix, iy);
+  return l ? [ix / l, iy / l] : null;
+}
+let kickDir = [1, 0];                                 // which way a Space kick is aimed
+const KICK_TURN = 3.2;                                // how fast the arrows swing it, radians a second
 function inputDir(p) {
   const pd = pad[p.team];
   return controlled(p) && (pd.x || pd.y) ? [pd.x, pd.y] : null;
@@ -1277,8 +1285,15 @@ function update(dt) {
 // what only this browser needs each frame, whoever runs the match
 function localTick(dt) {
   if (kickHeld) {                                     // holding Space with the ball winds up a kick
-    if (ball.holder === human && phase === 'play') kickCharge = Math.min(1, kickCharge + dt / SPACE_KICK);
-    else { kickHeld = false; kickCharge = 0; }
+    if (ball.holder === human && phase === 'play') {
+      kickCharge = Math.min(1, kickCharge + dt / SPACE_KICK);
+      const want = arrowDir();                        // an arrow swings the aim toward its direction
+      if (want) {
+        const a0 = Math.atan2(kickDir[1], kickDir[0]), d = Math.atan2(want[1], want[0]) - a0;
+        const a = a0 + clamp(Math.atan2(Math.sin(d), Math.cos(d)), -KICK_TURN * dt, KICK_TURN * dt);
+        kickDir = [Math.cos(a), Math.sin(a)];
+      }
+    } else { kickHeld = false; kickCharge = 0; }
   }
   hoverP = ball.holder !== human ? pickTeammate(mouse.x, mouse.y) : null;
   updateCamera(dt);
@@ -1312,11 +1327,8 @@ function updateCamera(dt) {
 const mouse = { x: -999, y: -999 };
 function aimInfo() {
   if (!human || ball.holder !== human || phase !== 'play') return null;
-  if (!aim && kickHeld) {                             // Space kick: toward the pointer, power from how long it's held
-    const [wx, wy] = s2w(mouse.x, mouse.y);
-    let dx = wx - human.x, dy = wy - human.y, len = hyp(dx, dy);
-    if (len < 0.5) { dx = human.fx; dy = human.fy; len = 1; }
-    return { power: kickCharge, f: sharpen(spreadFor(human.x, human.y, dx / len, dy / len, kickCharge, 'kick')) };
+  if (!aim && kickHeld) {                             // Space kick: aimed with the arrows, power from how long it's held
+    return { power: kickCharge, f: sharpen(spreadFor(human.x, human.y, kickDir[0], kickDir[1], kickCharge, 'kick')) };
   }
   if (!aim) return null;
   const dx = aim.sx - mouse.x, dy = aim.sy - mouse.y, len = hyp(dx, dy);
@@ -1406,7 +1418,9 @@ window.addEventListener('keydown', e => {
   if (e.repeat) return;
   if (e.code === 'KeyQ') takeNearest();
   if (e.code === 'Space' && running && !paused) {
-    if (human && ball.holder === human && phase === 'play') { if (!aim) { kickHeld = true; kickCharge = 0; } }
+    if (human && ball.holder === human && phase === 'play') {
+      if (!aim) { kickHeld = true; kickCharge = 0; kickDir = arrowDir() || [human.fx, human.fy]; }   // starts the way you're facing
+    }
     else if (contestFor(human)) act({ a: 'shove' });  // lining up for a mark
     else diveHeld = true;
   }
@@ -2185,11 +2199,12 @@ function render() {
     ctx.fillStyle = c === human ? rgba(AMBER, 1) : rgba(TEAM[c.team].light, 1);
     ctx.beginPath(); ctx.moveTo(sx - 6, top - 8); ctx.lineTo(sx + 6, top - 8); ctx.lineTo(sx, top); ctx.closePath(); ctx.fill();
   }
-  if (a && !aim) {                                    // Space kick: power ring on the pointer
+  if (a && !aim) {                                    // Space kick: power ring around your player
+    const [px, py] = w2s(human.x, human.y), rr = PR * S + 14;
     ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.arc(mouse.x, mouse.y, 15, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(px, py, rr, 0, Math.PI * 2); ctx.stroke();
     ctx.strokeStyle = rgba(AMBER, 1);
-    ctx.beginPath(); ctx.arc(mouse.x, mouse.y, 15, -Math.PI / 2, -Math.PI / 2 + a.power * Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(px, py, rr, -Math.PI / 2, -Math.PI / 2 + a.power * Math.PI * 2); ctx.stroke();
   }
   if (a && aim) {
     ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 2;
