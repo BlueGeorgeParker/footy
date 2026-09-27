@@ -161,7 +161,7 @@
       <dt><kbd>Right-click</kbd></dt><dd>Handball, the same way. Shorter and safer.</dd>
       <dt><kbd>Click a teammate</kbd></dt><dd>Take them over whenever you don't have the ball. Run under it to catch it.</dd>
       <dt><kbd>Q</kbd></dt><dd>Take over the teammate closest to where the ball is coming down</dd>
-      <dt><kbd>Space</kbd></dt><dd>Tap to jump: for the mark when the ball's dropping near you, and from right behind someone you climb them for a specky. A jump also clears a ground slam. Hold to wind up a diving tackle straight away, and let go to dive.</dd>
+      <dt><kbd>Space</kbd></dt><dd>Tap to jump: for the mark when the ball's dropping near you, and from right behind someone you climb them for a specky. A jump also clears a ground slam. Hold to wind up a diving tackle straight away, and let go to dive. The dive knocks down any opponent it hits, ball or not.</dd>
       <dt><kbd>Shift</kbd></dt><dd>Press for a quick burst forward: nobody can tackle you mid-burst, so time it against a glowing tackler. Keep holding for a speed boost (it uses the bar under your player). Run into an opponent who hasn't got the ball and you knock them out of the way. That's also how you push someone off the spot in a marking contest.</dd>
       <dt><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><kbd>5</kbd></dt><dd>Power-ups: perfect kick, guaranteed mark, Gigaplayer, Zone Pass, ground slam. Press the number or click it in the bar at the bottom. Each one recharges after you use it.</dd>
       <dt><kbd>Wheel</kbd></dt><dd>Zoom</dd>
@@ -725,6 +725,18 @@ function moveSpecial(p, dt) {
       if (ball.holder !== p) p.down = 0.3;
       return true;
     }
+    for (const v of players) {                        // anyone else the dive runs into goes down too
+      if (v === h || v.team === p.team || v.down > 0 || v.bumpCd > 0 || v.leapT > 0 || v.slamT > 0) continue;
+      const ox = v.x - p.x, oy = v.y - p.y, d = hyp(ox, oy);
+      if (d >= PR * 2 + 0.35) continue;
+      if (v.giantT > 0) { p.lunge = null; p.down = 0.9; p.vx *= -0.3; p.vy *= -0.3; bump('bounced'); return true; }
+      if (game.arm[v.team].sure > 0 && contestFor(v)) continue;   // a guaranteed mark holds their ground
+      const inBack = (v.fx * ox + v.fy * oy) / (d || 1) > 0.55;
+      p.lunge = null; p.vx *= 0.3; p.vy *= 0.3; p.down = 0.3;
+      flatten(v, L.dx, L.dy, 8, 'diveKnock');
+      if (inBack && contestFor(v)) awardFree(v, 'PUSH IN THE BACK');
+      return true;
+    }
     if (L.t >= L.dur) { p.lunge = null; p.down = L.downT; }
     return true;
   }
@@ -822,6 +834,12 @@ function runRoute(p, dt, boost) {
   if (last && far < 1.2) R.done = true;               // at the end: hold the spot while it's their side's ball
   steer(p, tx, ty, p.spd * moveMul(p) * sprintMul(p, !last || far > 4 || !!boost), last ? 0.6 : null, dt);
   return true;
+}
+// in the slow motion after a mark, drawn runners aren't slowed: that's their head start
+function runnersAhead(dt) {
+  if (dt <= 0 || phase !== 'play') return;
+  for (const p of players) if (p.route && p.route.go && !controlled(p) && !waitingRun(p) && canAct(p) && ball.holder !== p) runRoute(p, dt);
+  keepInside();
 }
 // where a runner will be t seconds into their run, to lead them with a kick
 function routeAt(p, pts, from, t) {
@@ -2302,6 +2320,7 @@ function frame(now) {
       if (plan) scale = plan.kind === 'token' ? 0 : PLAN.markSpeed;
       else if (game.slowmo > 0) { game.slowmo -= dt; scale = 0.3; }   // a specky
       if (scale > 0) update(dt * scale);
+      if (plan && plan.kind === 'mark') runnersAhead(dt * (1 - scale));
       if (plan && (plan.left -= dt) <= 0) endPlan();
     }
     localTick(dt);
