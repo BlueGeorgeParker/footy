@@ -112,7 +112,11 @@
   .pw {
     position: relative; width: 98px; box-sizing: border-box; padding: 6px 8px 7px; background: var(--panel);
     border: 1px solid var(--panel-edge); border-radius: 6px; overflow: hidden; display: grid; gap: 3px;
+    font: inherit; color: var(--ink); text-align: left; cursor: pointer; pointer-events: auto;
   }
+  .pw:hover { border-color: #6b8d74; }
+  .pw.cool { cursor: not-allowed; }
+  .pw:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
   .pw i { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: rgba(0,0,0,.6); }
   .pw kbd, .pw span, .pw b { position: relative; }
   .pw kbd { justify-self: start; }
@@ -156,7 +160,7 @@
       <dt><kbd>Q</kbd></dt><dd>Take over the teammate closest to where the ball is coming down</dd>
       <dt><kbd>Hold Space</kbd></dt><dd>With the ball: wind up a kick toward your mouse pointer, let go to kick. Without it: wind up a diving tackle, let go to dive. When the ball's dropping near you: shove the nearest opponent.</dd>
       <dt><kbd>Shift</kbd></dt><dd>Dash the way you're running: nobody can tackle you mid-dash, so time it against a glowing tackler. Keep holding to sprint. When the ball's dropping near you: jump for it instead. Jump from right behind someone to climb them for a specky.</dd>
-      <dt><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><kbd>5</kbd></dt><dd>Power-ups: perfect kick, guaranteed mark, super tackle, Gigaplayer, Zone Pass. Each one recharges after you use it.</dd>
+      <dt><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><kbd>5</kbd></dt><dd>Power-ups: perfect kick, guaranteed mark, super tackle, Gigaplayer, Zone Pass. Press the number or click it in the bar at the bottom. Each one recharges after you use it.</dd>
       <dt><kbd>Wheel</kbd></dt><dd>Zoom</dd>
       <dt><kbd>P</kbd></dt><dd>Pause</dd>
     </dl>
@@ -211,11 +215,11 @@ const TOKEN = { n: 4, r: 1.8, respawn: 20 };                                 // 
 const JUMP = { dur: 0.6, boost: 1.3, specky: 2.8, climb: 2.8 };             // jumping for a mark (metres of extra reach)
 const SHOVE = { range: 2.6, cd: 1.2, kick: 7 };
 const POWERS = [                                       // keys 1-5; cd = seconds to recharge
-  { key: 'perfect', name: 'Perfect kick', cd: 30, arm: 15 },
-  { key: 'sure', name: 'Guaranteed mark', cd: 35, arm: 12 },
-  { key: 'super', name: 'Super tackle', cd: 25, arm: 10 },
-  { key: 'giant', name: 'Gigaplayer', cd: 40, dur: 6 },
-  { key: 'zone', name: 'Zone Pass', cd: 35, dur: 8 },
+  { key: 'perfect', name: 'Perfect kick', cd: 30, arm: 15, tip: 'Your next kick lands exactly where you aim.' },
+  { key: 'sure', name: 'Guaranteed mark', cd: 35, arm: 12, tip: "Your side's next catch can't be beaten or shoved off." },
+  { key: 'super', name: 'Super tackle', cd: 25, arm: 10, tip: 'Your next dive is faster, goes further and catches people mid-dash.' },
+  { key: 'giant', name: 'Gigaplayer', cd: 40, dur: 6, tip: "Double size for 6 seconds: can't be tackled, and flattens anyone you run into." },
+  { key: 'zone', name: 'Zone Pass', cd: 35, dur: 8, tip: 'Walk through the walls for 8 seconds. Get home before it runs out.' },
 ];
 const noArms = () => ({ perfect: 0, sure: 0, super: 0 });
 const HOME = 0, AWAY = 1;
@@ -365,14 +369,20 @@ function updHud() {
 const powersEl = document.getElementById('powers');
 const planEl = document.getElementById('plan');
 const planTitle = document.getElementById('planTitle'), planHint = document.getElementById('planHint'), planBar = document.getElementById('planBar');
-powersEl.innerHTML = POWERS.map((Pw, n) => `<div class="pw"><i></i><kbd>${n + 1}</kbd><span>${Pw.name}</span><b></b></div>`).join('');
+powersEl.innerHTML = POWERS.map((Pw, n) =>
+  `<button type="button" class="pw" tabindex="-1" title="${Pw.name} (${n + 1}): ${Pw.tip} Recharges in ${Pw.cd} seconds."><i></i><kbd>${n + 1}</kbd><span>${Pw.name}</span><b></b></button>`).join('');
 const pwEls = [...powersEl.children].map(el => ({ el, shade: el.querySelector('i'), secs: el.querySelector('b') }));
+pwEls.forEach((w, n) => {
+  w.el.addEventListener('pointerdown', e => e.preventDefault());   // don't take focus: Space and Shift stay with the game
+  w.el.addEventListener('click', () => act({ a: 'power', n }));
+});
 function updPowersHud() {
   powersEl.hidden = !running;
   pwEls.forEach((w, n) => {
     const Pw = POWERS[n], cd = game.cd[me][n];
     const on = Pw.arm ? game.arm[me][Pw.key] > 0 : !!human && (Pw.key === 'giant' ? human.giantT > 0 : human.zoneT > 0);
     w.el.classList.toggle('on', on);
+    w.el.classList.toggle('cool', cd > 0);
     const h = `${Math.round(cd / Pw.cd * 100)}%`;
     if (w.shade.style.height !== h) w.shade.style.height = h;
     setText(w.secs, cd > 0 ? String(Math.ceil(cd)) : '');
