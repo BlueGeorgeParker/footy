@@ -158,6 +158,7 @@
     <dl class="controls">
       <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>Run</dd>
       <dt><kbd>Left-click</kbd></dt><dd>Kick. Hold, pull back, let go. The further you pull, the longer the kick and the wider the area it could land in.</dd>
+      <dt><kbd>Left-drag</kbd></dt><dd>Without the ball: tackle. Press, pull back and let go, and you launch yourself the other way; the further you pull, the further you fly. You glow while you're pulling, same as any tackle. A quick click on a teammate still takes them over.</dd>
       <dt><kbd>Right-click</kbd></dt><dd>Handball, the same way. Shorter and safer.</dd>
       <dt><kbd>Click a teammate</kbd></dt><dd>Take them over whenever you don't have the ball. Run under it to catch it.</dd>
       <dt><kbd>&larr;</kbd><kbd>&rarr;</kbd></dt><dd>Switch between your players near the ball and near where it's coming down, left to right. Every kick puts you on the one nearest where it's coming down to start with.</dd>
@@ -206,7 +207,7 @@ const HAND = { min: 3, max: 21, sL: [0.35, 2.6], sT: [0.25, 1.8], z0: 1.0 };
 const FULL_DRAG = 230;                            // px of pull for full power
 const QUARTER = 300;
 // power moves. spd in m/s, times in seconds
-const DIVE = { charge: 0.2, dur: 0.38, spd: [15, 25.5], down: 0.65, reach: 0.8 };  // your tackle: hold Space to wind it up (reach: extra metres it grabs)
+const DIVE = { charge: 0.2, dur: 0.38, spd: [8, 25.5], down: 0.65, reach: 0.8 };  // your tackle: hold Space to wind it up (reach: extra metres it grabs)
 const LUNGE = { range: 4.6, windup: [0.55, 0.85], dur: 0.34, spd: 12.5, down: 0.75 }; // theirs
 const LEAP = { dur: 0.28, spd: 15, cd: 1.1, reach: 4.5, hit: 18, fly: 0.5 };   // a person's charge: whoever it hits leaves at hit m/s
 const TAP_HOLD = 180;                              // ms: let go sooner than this and it's a tap (Space: jump, Shift: charge)
@@ -666,7 +667,13 @@ function inputDir(p) {
 const moveDir = p => inputDir(p) || [p.fx, p.fy];
 let spaceAt = 0, shiftAt = 0;                        // when Space / Shift went down (0: it's up)
 const boostHeld = () => !!(keys.ShiftLeft || keys.ShiftRight);
-const tackleHeld = () => !!spaceAt;
+const tackleHeld = () => !!spaceAt || !!(tack && tack.moved);
+// tackling with the mouse, like a kick: press, pull back, let go and you launch the other way
+let tack = null;                                      // { sx, sy: where the press was, pick: teammate id under it or -1, moved }
+function tackleInfo(t) {
+  const dx = t.sx - mouse.x, dy = t.sy - mouse.y, len = hyp(dx, dy);
+  return len < 12 ? null : { dx: dx / len, dy: dy / len, power: clamp(len / FULL_DRAG, 0.05, 1) };
+}
 const diveSpeed = c => lerp(DIVE.spd[0], DIVE.spd[1], c);
 function startLunge(p, dx, dy, spd, dur, downT) {
   p.lunge = { t: 0, dur, dx, dy, spd, downT };
@@ -685,11 +692,11 @@ function aiLunge(o, h) {
   const d = hyp(dx, dy) || 1;
   startLunge(o, dx / d, dy / d, LUNGE.spd, LUNGE.dur, LUNGE.down);
 }
-function releaseDive(team) {
+function releaseDive(team, power) {                  // power: from a mouse pull; otherwise how long it was wound up
   const p = ctrl[team];
   pad[team].space = false;
   if (!p || p.charge <= 0) return;
-  const c = p.charge;
+  const c = power !== undefined ? power : p.charge;
   p.charge = 0;
   if (!canAct(p) || ball.holder === p) return;
   bump('dive');
@@ -1526,6 +1533,7 @@ cv.addEventListener('pointerdown', e => {
   mouse.x = e.clientX; mouse.y = e.clientY;
   if (!running || paused || (e.button !== 0 && e.button !== 2)) return;
   if (aim && e.button !== aim.btn) { aim = null; return; }   // the other button calls the kick off
+  if (tack && e.button !== 0) { tack = null; return; }         // or the tackle
   if (canPlace() && e.button === 0) {                 // ball's out of play: pick a player up (a click without a drag takes them over)
     const p = pickTeammate(e.clientX, e.clientY, true);
     if (p) {
@@ -1547,6 +1555,10 @@ cv.addEventListener('pointerdown', e => {
   if (human && ball.holder === human && phase === 'play') {
     aim = { type: e.button === 0 ? 'kick' : 'hb', btn: e.button, sx: e.clientX, sy: e.clientY };
     try { cv.setPointerCapture(e.pointerId); } catch (_) { /* fine without capture */ }
+  } else if (e.button === 0 && phase === 'play') {    // a click on a teammate takes them over; a pull winds up a tackle
+    const p = pickTeammate(e.clientX, e.clientY);
+    tack = { sx: e.clientX, sy: e.clientY, pick: p ? p.id : -1, moved: false };
+    try { cv.setPointerCapture(e.pointerId); } catch (_) { /* fine without capture */ }
   } else if (e.button === 0) {
     const p = pickTeammate(e.clientX, e.clientY);
     if (p) act({ a: 'pick', i: p.id });
@@ -1556,6 +1568,8 @@ cv.addEventListener('pointermove', e => {
   mouse.x = e.clientX; mouse.y = e.clientY;
   // a second button pressed while one's held arrives here, not as a pointerdown: it calls the kick off too
   if (aim && (e.buttons & (aim.btn === 0 ? 2 : 1))) aim = null;
+  if (tack && (e.buttons & 2)) tack = null;
+  if (tack && !tack.moved && hyp(e.clientX - tack.sx, e.clientY - tack.sy) > 8) tack.moved = true;
   if (placing && !placing.moved && hyp(e.clientX - placing.sx, e.clientY - placing.sy) > 5) placing.moved = true;
   if (!drawing) return;
   const [wx, wy] = s2w(mouse.x, mouse.y), q = drawing.pts[drawing.pts.length - 1];
@@ -1571,9 +1585,16 @@ cv.addEventListener('pointerup', e => {
     else if (players[pl.i] !== human) act({ a: 'pick', i: pl.i });
     return;
   }
+  if (tack && e.button === 0) {
+    const t = tack, ti = t.moved ? tackleInfo(t) : null;
+    tack = null;
+    if (!t.moved) { if (t.pick >= 0) act({ a: 'pick', i: t.pick }); }
+    else if (ti) act({ a: 'dive', x: ti.dx, y: ti.dy, power: ti.power });   // pulled back to where you pressed: called off
+    return;
+  }
   if (aim && e.button === aim.btn) releaseAim();
 });
-cv.addEventListener('pointercancel', () => { aim = null; placing = null; });
+cv.addEventListener('pointercancel', () => { aim = null; placing = null; tack = null; });
 cv.addEventListener('wheel', e => {
   e.preventDefault();
   cam.zoom = clamp(cam.zoom * Math.exp(-(e.deltaY || e.deltaX) * 0.0012), 0.45, 2.6);   // holding Shift turns the wheel sideways
@@ -1605,7 +1626,7 @@ window.addEventListener('keyup', e => {
     act({ a: tap ? 'jump' : 'dive', x, y });          // a tap jumps; let go of a hold and you dive
   }
 });
-window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; aim = null; spaceAt = 0; shiftAt = 0; placing = null; if (human) human.charge = 0; });
+window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; aim = null; spaceAt = 0; shiftAt = 0; placing = null; tack = null; if (human) human.charge = 0; });
 
 // ---------------------------------------------------------------- overlay
 const overlay = document.getElementById('overlay');
@@ -1722,7 +1743,7 @@ function togglePause() {
   if (!running) return;
   if (net.mode === 'guest') { if (net.conn && net.conn.open) net.conn.send({ t: 'act', a: 'pause' }); return; }
   paused = !paused;
-  if (paused) { aim = null; spaceAt = 0; shiftAt = 0; placing = null; if (human) human.charge = 0; menu('paused'); }
+  if (paused) { aim = null; spaceAt = 0; shiftAt = 0; placing = null; tack = null; if (human) human.charge = 0; menu('paused'); }
   else { overlay.hidden = true; last = performance.now(); }
 }
 function fullTime() {
@@ -1859,7 +1880,7 @@ function applyAction(team, m) {
     const x = Number(m.x), y = Number(m.y);          // the direction held when they pressed it
     if (Number.isFinite(x) && Number.isFinite(y) && hyp(x, y) <= 1.01) { pad[team].x = x; pad[team].y = y; }
     if (m.a === 'leap') tryLeap(c);
-    else if (m.a === 'dive') releaseDive(team);
+    else if (m.a === 'dive') releaseDive(team, Number.isFinite(Number(m.power)) ? clamp(Number(m.power), 0.05, 1) : undefined);
     else startJump(c);
   } else if (m.a === 'power') { const n = Number(m.n); if (n >= 0 && n < POWERS.length) usePower(team, n); }
   else if (m.a === 'route') setRoute(team, Number(m.i), m.pts);
@@ -1993,7 +2014,7 @@ function applySnapshot(s) {
   }
   plan = Array.isArray(s.pl) ? { kind: s.pl[0] === 1 ? 'mark' : 'token', team: s.pl[1], left: s.pl[2] } : null;
   if (Array.isArray(s.tk)) game.tokens = s.tk.map(q => ({ x: q[0], y: q[1], wait: q[2] ? 0 : 1 }));
-  if (s.pa && !paused) { paused = true; aim = null; spaceAt = 0; shiftAt = 0; placing = null; menu('paused'); }
+  if (s.pa && !paused) { paused = true; aim = null; spaceAt = 0; shiftAt = 0; placing = null; tack = null; menu('paused'); }
   else if (!s.pa && paused) { paused = false; overlay.hidden = true; }
 }
 // between snapshots, glide everything toward where the host last said it was heading
@@ -2178,7 +2199,8 @@ function drawPlayer(p, S) {
     ctx.strokeStyle = rgba(col, 0.45 + 0.55 * c); ctx.lineWidth = (1.5 + 2 * c) / S;
     ctx.beginPath(); ctx.arc(p.x, p.y, r + 0.35 + (1 - c) * 2.4, 0, Math.PI * 2); ctx.stroke();
     if (p === human) {                                 // where your dive will take you
-      const [dx, dy] = moveDir(p), len = diveSpeed(c) * DIVE.dur;
+      const ti = tack && tack.moved ? tackleInfo(tack) : null;   // pulling with the mouse: that way, that far
+      const [dx, dy] = ti ? [ti.dx, ti.dy] : moveDir(p), len = diveSpeed(ti ? ti.power : c) * DIVE.dur;
       const ex = p.x + dx * (len + r), ey = p.y + dy * (len + r);
       ctx.strokeStyle = rgba(AMBER, 0.8); ctx.lineWidth = 2 / S;
       ctx.beginPath(); ctx.moveTo(p.x + dx * r, p.y + dy * r); ctx.lineTo(ex, ey); ctx.stroke();
@@ -2393,10 +2415,21 @@ function render() {
     ctx.strokeStyle = rgba(AMBER, 1);
     ctx.beginPath(); ctx.arc(aim.sx, aim.sy, 15, -Math.PI / 2, -Math.PI / 2 + a.power * Math.PI * 2); ctx.stroke();
   }
+  const ti = tack && tack.moved ? tackleInfo(tack) : null;
+  if (tack && tack.moved) {                           // a tackle being pulled back
+    ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(tack.sx, tack.sy); ctx.lineTo(mouse.x, mouse.y); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.8)';
+    ctx.beginPath(); ctx.arc(tack.sx, tack.sy, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(tack.sx, tack.sy, 15, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = rgba(HOT, 1);
+    ctx.beginPath(); ctx.arc(tack.sx, tack.sy, 15, -Math.PI / 2, -Math.PI / 2 + (ti ? ti.power : 0) * Math.PI * 2); ctx.stroke();
+  }
   drawMinimap();
 
   let cur = 'default';
-  if (running && !paused) cur = aim || placing ? 'grabbing' : canPlace() ? (hoverP ? 'grab' : 'default') : ball.holder === human ? 'crosshair' : hoverP ? 'pointer' : 'default';
+  if (running && !paused) cur = aim || placing || (tack && tack.moved) ? 'grabbing' : canPlace() ? (hoverP ? 'grab' : 'default') : ball.holder === human ? 'crosshair' : hoverP ? 'pointer' : 'default';
   if (cv.style.cursor !== cur) cv.style.cursor = cur;
 }
 
