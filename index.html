@@ -161,15 +161,15 @@
       <dt><kbd>Right-click</kbd></dt><dd>Handball, the same way. Shorter and safer.</dd>
       <dt><kbd>Click a teammate</kbd></dt><dd>Take them over whenever you don't have the ball. Run under it to catch it.</dd>
       <dt><kbd>Q</kbd></dt><dd>Take over the teammate closest to where the ball is coming down</dd>
-      <dt><kbd>Space</kbd></dt><dd>Tap to jump the way you're running: nobody can tackle you mid-jump, so time it against a glowing tackler. When the ball's dropping near you it jumps for the mark instead; from right behind someone you climb them for a specky. Keep holding to wind up a diving tackle, and let go to dive.</dd>
-      <dt><kbd>Shift</kbd></dt><dd>Hold for a speed boost (it uses the bar under your player). Run into an opponent who hasn't got the ball and you knock them out of the way. That's also how you push someone off the spot in a marking contest.</dd>
-      <dt><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><kbd>5</kbd></dt><dd>Power-ups: perfect kick, guaranteed mark, super tackle, Gigaplayer, Zone Pass. Press the number or click it in the bar at the bottom. Each one recharges after you use it.</dd>
+      <dt><kbd>Space</kbd></dt><dd>Tap to jump: for the mark when the ball's dropping near you, and from right behind someone you climb them for a specky. A jump also clears a ground slam. Hold to wind up a diving tackle straight away, and let go to dive.</dd>
+      <dt><kbd>Shift</kbd></dt><dd>Press for a quick burst forward: nobody can tackle you mid-burst, so time it against a glowing tackler. Keep holding for a speed boost (it uses the bar under your player). Run into an opponent who hasn't got the ball and you knock them out of the way. That's also how you push someone off the spot in a marking contest.</dd>
+      <dt><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><kbd>5</kbd></dt><dd>Power-ups: perfect kick, guaranteed mark, Gigaplayer, Zone Pass, ground slam. Press the number or click it in the bar at the bottom. Each one recharges after you use it.</dd>
       <dt><kbd>Wheel</kbd></dt><dd>Zoom</dd>
       <dt><kbd>P</kbd></dt><dd>Pause</dd>
     </dl>
-    <p class="rule">Take a mark and you get 10 seconds of slow motion to draw runs: drag from a teammate to where they should go. They stand still until you kick, then run it. Take one over mid-run and they keep to the line until you steer. Carry the ball over a play token and the game freezes for 5 seconds to do the same.</p>
+    <p class="rule">Take a mark and you get 10 seconds of slow motion to draw runs: drag from a teammate to where they should go. They're off the moment you let go, and hold the spot at the end. Take one over mid-run and they keep to the line until you steer. Carry the ball over a play token and the game freezes for 5 seconds to do the same.</p>
     <p class="rule">Nobody crosses the bright walls except with a Zone Pass. Shove, knock or climb someone from behind while the ball's in the air and it's a free kick against you, so time your specky.</p>
-    <p class="rule">Opponents glow red before they dive at you. When the ring closes in on them, jump out of the way, or boost into them before they go.</p>
+    <p class="rule">Opponents glow red before they dive at you. When the ring closes in on them, burst out of the way, or boost into them before they go.</p>
     <p class="rule">Catch a kick of 15&nbsp;m or more before it bounces and it's a mark: nobody can tackle you until you kick or run more than 5&nbsp;m off the spot. Get caught holding the ball too long and it's a free kick to them.</p>
   </div>
 </div>
@@ -204,10 +204,10 @@ const HAND = { min: 3, max: 21, sL: [0.35, 2.6], sT: [0.25, 1.8], z0: 1.0 };
 const FULL_DRAG = 230;                            // px of pull for full power
 const QUARTER = 300;
 // power moves. spd in m/s, times in seconds
-const DIVE = { charge: 0.6, dur: 0.32, spd: [10, 17], down: 0.65 };        // your tackle: hold Space to wind it up
+const DIVE = { charge: 0.2, dur: 0.38, spd: [15, 25.5], down: 0.65, reach: 0.8 };  // your tackle: hold Space to wind it up (reach: extra metres it grabs)
 const LUNGE = { range: 4.6, windup: [0.55, 0.85], dur: 0.34, spd: 12.5, down: 0.75 }; // theirs
 const LEAP = { dur: 0.28, spd: 15, cd: 1.1, reach: 4.5 };
-const TAP_HOLD = 180;                              // ms: hold Space past this and it winds up a tackle
+const TAP_HOLD = 180;                              // ms: let go of Space sooner than this and it's a jump, not a dive
 const SPRINT = { mult: 1.5, drain: 0.45, fill: 0.16 };  // the Shift boost; stamina 0..1 per second
 const KNOCK = { reach: 0.4, spd: 16, cost: 0.1 };  // boosting into someone knocks them flying; cost = stamina per knock
 const GATHER = 10;                                // metres from where a kick comes down that players close in for the mark
@@ -222,11 +222,14 @@ const SHOVE = { range: 2.6, cd: 1.2, kick: 7 };
 const POWERS = [                                       // keys 1-5; cd = seconds to recharge
   { key: 'perfect', name: 'Perfect kick', cd: 30, arm: 15, tip: 'Your next kick lands exactly where you aim.' },
   { key: 'sure', name: 'Guaranteed mark', cd: 35, arm: 12, tip: "Your side's next catch can't be beaten or shoved off." },
-  { key: 'super', name: 'Super tackle', cd: 25, arm: 10, tip: 'Your next dive is faster, goes further and catches people mid-jump.' },
   { key: 'giant', name: 'Gigaplayer', cd: 40, dur: 6, tip: "Double size for 6 seconds: can't be tackled, and flattens anyone you run into." },
   { key: 'zone', name: 'Zone Pass', cd: 35, dur: 8, tip: 'Walk through the walls for 8 seconds. Get home before it runs out.' },
+  { key: 'slam', name: 'Ground slam', cd: 20, tip: 'Leap up and slam the ground: every opponent close by is thrown clear, and whoever has the ball drops it. Jump and it misses you.' },
 ];
-const noArms = () => ({ perfect: 0, sure: 0, super: 0 });
+const SLAM = { rise: 0.35, r: 7, spd: [19, 8], down: 1.0, fly: 0.35 };  // up for rise seconds, then everyone within r metres flies
+const noArms = () => ({ perfect: 0, sure: 0 });
+const PW = Object.fromEntries(POWERS.map((P, n) => [P.key, n]));   // a power's slot, by name
+const noCds = () => POWERS.map(() => 0);
 const HOME = 0, AWAY = 1;
 const AMBER = [255, 207, 51];
 const HOT = [255, 84, 40];
@@ -278,7 +281,7 @@ const ball = {
 };
 const game = {
   g: [0, 0], b: [0, 0], q: 1, clock: QUARTER, throwAt: null, fk: null, kickInEnd: 1, t: 0,
-  cd: [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0]],               // power-up cooldowns per side
+  cd: [noCds(), noCds()],                             // power-up cooldowns per side
   arm: [noArms(), noArms()],                          // power-ups switched on and waiting for their moment
   tokens: [], slowmo: 0, aiPw: 0,
 };
@@ -316,7 +319,7 @@ function initPlayers() {
         charge: 0, windup: rand(...LUNGE.windup), lunge: null, down: 0,
         leapT: 0, leapCd: 0, leapDx: 1, leapDy: 0, trail: [],
         giantT: 0, zoneT: 0, outX: null, jumpT: 0, jumpBoost: 0, climb: null, caught: false, lift: 0,
-        jumpAt: JUMP.dur / 2 + rand(-0.15, 0.15), jumpFlight: -1, shoveCd: 0, bumpCd: 0, route: null,
+        jumpAt: JUMP.dur / 2 + rand(-0.15, 0.15), jumpFlight: -1, shoveCd: 0, bumpCd: 0, route: null, slamT: 0, flyT: 0,
       });
     });
   }
@@ -385,7 +388,7 @@ function updPowersHud() {
   powersEl.hidden = !running;
   pwEls.forEach((w, n) => {
     const Pw = POWERS[n], cd = game.cd[me][n];
-    const on = Pw.arm ? game.arm[me][Pw.key] > 0 : !!human && (Pw.key === 'giant' ? human.giantT > 0 : human.zoneT > 0);
+    const on = Pw.arm ? game.arm[me][Pw.key] > 0 : !!human && (Pw.key === 'giant' ? human.giantT > 0 : Pw.key === 'zone' ? human.zoneT > 0 : human.slamT > 0);
     w.el.classList.toggle('on', on);
     w.el.classList.toggle('cool', cd > 0);
     const h = `${Math.round(cd / Pw.cd * 100)}%`;
@@ -400,7 +403,7 @@ function updPlanHud() {
   setText(planTitle, !mine ? 'YOUR FRIEND IS DRAWING A PLAY' : plan.kind === 'token' ? 'PLAY TOKEN: TIME IS FROZEN' : 'DRAW A PLAY');
   setText(planHint, !mine ? '' : plan.kind === 'token'
     ? 'Drag from a teammate to draw their run. They go when time starts again.'
-    : 'Drag from a teammate to draw their run; right-click them to clear it. They go when you kick.');
+    : 'Drag from a teammate to draw their run; right-click them to clear it. They go as soon as you let go.');
   planBar.style.width = `${clamp(plan.left / total, 0, 1) * 100}%`;
 }
 
@@ -409,7 +412,7 @@ function setupBounce() {
   for (const p of players) {
     p.x = p.bx; p.y = p.by; p.vx = p.vy = 0; p.stun = 0; p.jump = 0; p.fx = attDir(p.team); p.fy = 0;
     p.lunge = null; p.down = 0; p.charge = 0; p.leapT = 0; p.trail = [];
-    p.route = null; p.jumpT = 0; p.climb = null; p.giantT = 0; p.zoneT = 0; p.outX = null;
+    p.route = null; p.jumpT = 0; p.climb = null; p.giantT = 0; p.zoneT = 0; p.outX = null; p.slamT = 0; p.flyT = 0;
   }
   plan = null;
   Object.assign(ball, { holder: null, state: 'dead', frozen: true, x: 0, y: 0, z: 1.4, vx: 0, vy: 0, vz: 0, protected: false, fieldA: 0, kickTeam: null, kickType: null });
@@ -514,7 +517,7 @@ function give(p, o = {}) {
   p.jump = o.mark ? 0.45 : 0.18; p.vx *= 0.3; p.vy *= 0.3;
   p.lunge = null; p.down = 0; p.charge = 0;                // a dive that gathers the ball ends clean
   p.route = null;                                          // got the ball: that run's done
-  for (const q of players) if (q.team !== p.team && q.route && !q.route.go) q.route = null;   // runs that never got their kick
+  for (const q of players) if (q.route && (q.team !== p.team || q.route.done)) q.route = null;   // turned over, or they got to their spot
   aim = null;
   for (const t of [HOME, AWAY]) if (active[t]) setHuman(p.team === t ? p : nearestInZone(t, p.x, p.y, false));
   manOnMark = (o.mark || o.free) ? nearestInZone(1 - p.team, p.x, p.y, true) : null;
@@ -533,8 +536,8 @@ function spreadFor(x, y, dx, dy, power, type) {
   const d = lerp(c.min, c.max, power), e = power ** 1.4;
   return { x: x + dx * d, y: y + dy * d, dx, dy, d, sL: lerp(c.sL[0], c.sL[1], e), sT: lerp(c.sT[0], c.sT[1], e), type };
 }
-// seconds in the air over d metres. Handballs are flat and quick
-const flightTime = (type, d) => (type === 'kick' ? 0.45 + d / 19 : 0.12 + d / 32);
+// seconds in the air over d metres. Kicks and handballs both move quick; handballs stay flat
+const flightTime = (type, d) => (type === 'kick' ? 0.3 + d / 28 : 0.12 + d / 32);
 function dispose(p, dx, dy, power, type) {
   const c = type === 'kick' ? KICK : HAND;
   const f = spreadFor(p.x, p.y, dx, dy, power, type);
@@ -552,10 +555,7 @@ function dispose(p, dx, dy, power, type) {
   manOnMark = null;
   ball.field = { ...f, team: p.team, person: controlled(p) ? p.team : -1 };   // person: which side's person kicked it
   ball.fieldA = 1;
-  if (controlled(p)) {                                // the drawn runs go on the kick
-    startRuns(p.team);
-    if (plan && plan.kind === 'mark' && plan.team === p.team) endPlan();
-  }
+  if (controlled(p) && plan && plan.kind === 'mark' && plan.team === p.team) endPlan();   // kicking ends the drawing time
 }
 const excluded = p => ball.exclude.some(e => e[0] === p);
 
@@ -628,10 +628,10 @@ function tackles(dt) {
     } else if (o.charge > 0) o.charge = Math.max(0, o.charge - dt * 1.6);
   }
   // a person can still tackle a computer ball carrier by running into them; people have to dive at each other
-  if (!h || ball.protected || h.grace > 0 || h.leapT > 0 || h.giantT > 0 || controlled(h)) return;
+  if (!h || ball.protected || h.grace > 0 || h.leapT > 0 || h.slamT > 0 || h.giantT > 0 || controlled(h)) return;
   for (const c of ctrl) {
     if (!c || c.team === h.team || !canAct(c)) continue;
-    if (hyp(c.x - h.x, c.y - h.y) <= PR * 2 + 0.45 && Math.random() < 4.5 * dt) { tackle(c, h); return; }
+    if (hyp(c.x - h.x, c.y - h.y) <= PR * 2 + 0.45 && Math.random() < 13.5 * dt) { tackle(c, h); return; }
   }
 }
 function tackle(o, h) {
@@ -648,7 +648,7 @@ function tackle(o, h) {
 }
 
 // ---------------------------------------------------------------- power moves
-function canAct(p) { return phase === 'play' && p.down <= 0 && !p.lunge && p.leapT <= 0 && p.stun <= 0 && !(p.jumpT > 0); }
+function canAct(p) { return phase === 'play' && p.down <= 0 && !p.lunge && p.leapT <= 0 && p.stun <= 0 && !(p.jumpT > 0) && !(p.slamT > 0); }
 function readKeys() {                                // this browser's WASD (or arrows) as a unit vector
   const ix = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
   const iy = (keys.KeyS || keys.ArrowDown ? 1 : 0) - (keys.KeyW || keys.ArrowUp ? 1 : 0);
@@ -662,7 +662,7 @@ function inputDir(p) {
 const moveDir = p => inputDir(p) || [p.fx, p.fy];
 let spaceAt = 0;                                      // when Space went down (0: it's up)
 const boostHeld = () => !!(keys.ShiftLeft || keys.ShiftRight);
-const tackleHeld = () => !!spaceAt && performance.now() - spaceAt >= TAP_HOLD;   // Space held past a tap
+const tackleHeld = () => !!spaceAt;
 const diveSpeed = c => lerp(DIVE.spd[0], DIVE.spd[1], c);
 function startLunge(p, dx, dy, spd, dur, downT) {
   p.lunge = { t: 0, dur, dx, dy, spd, downT };
@@ -679,10 +679,7 @@ function aiLunge(o, h) {
   o.windup = rand(...LUNGE.windup);
   let dx = h.x + h.vx * 0.2 - o.x, dy = h.y + h.vy * 0.2 - o.y;
   const d = hyp(dx, dy) || 1;
-  const sup = game.arm[o.team].super > 0;
-  if (sup) game.arm[o.team].super = 0;
-  startLunge(o, dx / d, dy / d, LUNGE.spd * (sup ? 1.5 : 1), LUNGE.dur * (sup ? 1.2 : 1), LUNGE.down);
-  o.lunge.super = sup;
+  startLunge(o, dx / d, dy / d, LUNGE.spd, LUNGE.dur, LUNGE.down);
 }
 function releaseDive(team) {
   const p = ctrl[team];
@@ -693,10 +690,8 @@ function releaseDive(team) {
   if (!canAct(p) || ball.holder === p) return;
   bump('dive');
   const [dx, dy] = moveDir(p);
-  const sup = game.arm[team].super > 0;               // Super tackle: faster, further, and a leap won't save them
-  if (sup) game.arm[team].super = 0;
-  startLunge(p, dx, dy, diveSpeed(c) * (sup ? 1.5 : 1), DIVE.dur * (sup ? 1.2 : 1), DIVE.down);
-  p.lunge.super = sup;
+  startLunge(p, dx, dy, diveSpeed(c), DIVE.dur, DIVE.down);
+  p.lunge.reach = DIVE.reach;
 }
 function startLeap(p, dx, dy) {
   bump('leap');
@@ -711,7 +706,8 @@ function tryLeap(p) {
 function moveSpecial(p, dt) {
   if (p.down > 0) {
     p.down -= dt;
-    const f = Math.exp(-10 * dt); p.vx *= f; p.vy *= f;
+    if (p.flyT > 0) p.flyT -= dt;                     // thrown by a slam: skids a long way before it bites
+    const f = Math.exp(-(p.flyT > 0 ? 3 : 10) * dt); p.vx *= f; p.vy *= f;
     p.x += p.vx * dt; p.y += p.vy * dt;
     return true;
   }
@@ -721,7 +717,7 @@ function moveSpecial(p, dt) {
     p.vx = L.dx * L.spd; p.vy = L.dy * L.spd; p.fx = L.dx; p.fy = L.dy;
     p.x += p.vx * dt; p.y += p.vy * dt;
     const h = ball.holder;
-    if (h && h.team !== p.team && !ball.protected && (h.leapT <= 0 || L.super) && hyp(h.x - p.x, h.y - p.y) < PR * 2 + 0.35 + (L.super ? 0.8 : 0)) {
+    if (h && h.team !== p.team && !ball.protected && h.leapT <= 0 && h.slamT <= 0 && hyp(h.x - p.x, h.y - p.y) < PR * 2 + 0.35 + (L.reach || 0)) {
       if (h.giantT > 0) { p.lunge = null; p.down = 0.9; p.vx *= -0.3; p.vy *= -0.3; bump('bounced'); return true; }  // bounced off a Gigaplayer
       p.lunge = null; p.vx *= 0.3; p.vy *= 0.3;
       bump('diveHit');
@@ -738,6 +734,12 @@ function moveSpecial(p, dt) {
     p.x += p.vx * dt; p.y += p.vy * dt;
     p.trail.push([p.x, p.y, 0.22]);
     if (p.leapT <= 0) { const sp = ball.holder === p ? 7.3 : p.spd; p.vx = p.leapDx * sp; p.vy = p.leapDy * sp; }
+    return true;
+  }
+  if (p.slamT > 0) {                                  // Ground slam: up, then down hard
+    p.slamT -= dt;
+    const f = Math.exp(-8 * dt); p.vx *= f; p.vy *= f; p.x += p.vx * dt; p.y += p.vy * dt;
+    if (p.slamT <= 0) { p.slamT = 0; groundSlam(p); }
     return true;
   }
   if (p.jumpT > 0) {                                  // in the air for a mark
@@ -757,7 +759,7 @@ function playOnCheck() {
   if (hyp(h.x - ball.markX, h.y - ball.markY) > 5.5) {
     ball.protected = false; manOnMark = null; h.holdTime = 1.6; h.grace = 0;
     banner('PLAY ON', '#ffffff', 0.9);
-    if (controlled(h)) { startRuns(h.team); if (plan && plan.kind === 'mark' && plan.team === h.team) endPlan(); }
+    if (controlled(h) && plan && plan.kind === 'mark' && plan.team === h.team) endPlan();
   }
 }
 function checkOut() {
@@ -780,15 +782,7 @@ function startPlan(kind, team) {
   for (const p of players) if (p.team === team) p.route = null;   // a clean whiteboard
   bump('plan_' + kind);
 }
-function endPlan() {
-  if (!plan) return;
-  const { kind, team } = plan;
-  plan = null;
-  if (kind === 'token') startRuns(team);              // token runs go straight away; mark runs go on the kick
-}
-function startRuns(team) {
-  for (const p of players) if (p.team === team && p.route && !p.route.go) { p.route.go = true; p.route.i = joinAt(p, p.route.pts); }
-}
+function endPlan() { plan = null; }
 // a runner joins their line at the point nearest them, never back at its start
 function joinAt(p, pts) {
   let best = 1, bd = Infinity;
@@ -800,8 +794,8 @@ function joinAt(p, pts) {
   }
   return Math.min(best, pts.length - 1);
 }
-// a teammate with a run drawn (or being drawn) stands still until it starts
-const waitingRun = p => phase === 'play' && ((p.route && !p.route.go) || (!!drawing && drawing.i === p.id && p.team === me));
+// a teammate stands still while you draw their run
+const waitingRun = p => phase === 'play' && !!drawing && drawing.i === p.id && p.team === me;
 function setRoute(team, i, pts) {
   const p = players[i];
   if (!plan || plan.team !== team || !p || p.team !== team || p === ctrl[team] || !Array.isArray(pts)) return;
@@ -813,17 +807,19 @@ function setRoute(team, i, pts) {
   }
   if (clean.length < 2) return;
   if (!p.route && players.filter(o => o.team === team && o.route).length >= PLAN.maxRuns) return;
-  p.route = { pts: clean, go: false, i: 0, hold: 1.5 };
+  p.route = { pts: clean, go: true, i: joinAt(p, clean), done: false };   // off the moment it's drawn
 }
 // follow a drawn run; true while the run is steering them
 function runRoute(p, dt, boost) {
   const R = p.route;
   if (!R || !R.go) return false;
+  if (R.done && possTeam() !== p.team) { p.route = null; return false; }   // their side lost it: the spot's no use now
   if (chasers.has(p) && !ball.holder && hyp(focus.x - p.x, focus.y - p.y) < 6) return false;  // the ball's theirs to get
+  if (R.done && gathers(p)) return false;             // the kick's coming down near their spot: go for it
   let [tx, ty] = R.pts[R.i];
   while (R.i < R.pts.length - 1 && hyp(tx - p.x, ty - p.y) < 1.6) { R.i++; [tx, ty] = R.pts[R.i]; }
   const last = R.i >= R.pts.length - 1, far = hyp(tx - p.x, ty - p.y);
-  if (last && far < 1.2) { R.hold -= dt; if (R.hold <= 0) p.route = null; }
+  if (last && far < 1.2) R.done = true;               // at the end: hold the spot while it's their side's ball
   steer(p, tx, ty, p.spd * moveMul(p) * sprintMul(p, !last || far > 4 || !!boost), last ? 0.6 : null, dt);
   return true;
 }
@@ -837,7 +833,7 @@ function routeAt(p, pts, from, t) {
   }
   return [x, y];
 }
-const routeState = p => (net.mode === 'guest' ? p.rt || 0 : p.route ? (p.route.go ? 2 : 1) : 0);
+const routeState = p => (net.mode === 'guest' ? p.rt || 0 : p.route ? (p.route.done ? 2 : 1) : 0);
 const routeFor = p => (net.mode === 'guest' ? (p.rt ? net.routes.get(p.id) || null : null) : p.route ? p.route.pts : null);
 const routeFrom = (p, pts) => (net.mode !== 'guest' && p.route && p.route.go ? p.route.i : joinAt(p, pts));   // the next point they're headed for
 function spawnToken(tk, k) {
@@ -867,9 +863,11 @@ function tokenCheck() {
 function usePower(team, n, p = ctrl[team]) {
   const Pw = POWERS[n];
   if (!Pw || game.cd[team][n] > 0 || phase !== 'play') return false;
-  if ((Pw.key === 'giant' || Pw.key === 'zone') && !p) return false;
+  if ((Pw.key === 'giant' || Pw.key === 'zone' || Pw.key === 'slam') && !p) return false;
+  if (Pw.key === 'slam' && !canAct(p)) return false;
   if (Pw.key === 'giant') { p.giantT = Pw.dur; p.leapT = 0; p.jumpT = 0; p.climb = null; }
   else if (Pw.key === 'zone') { p.zoneT = Pw.dur; p.outX = null; }
+  else if (Pw.key === 'slam') { p.slamT = SLAM.rise; p.charge = 0; }
   else game.arm[team][Pw.key] = Pw.arm;
   game.cd[team][n] = Pw.cd;
   bump('power_' + Pw.key);
@@ -883,15 +881,18 @@ function aiPowers(t) {
   const cd = game.cd[t], arm = game.arm[t], h = ball.holder, att = attDir(t);
   const foesNear = (q, r) => players.filter(o => o.team !== q.team && o.down <= 0 && hyp(o.x - q.x, o.y - q.y) < r).length;
   if (h && h.team === t && !ball.protected) {
-    if (cd[3] <= 0 && foesNear(h, 7) >= 2 && Math.random() < 0.35) { usePower(t, 3, h); return; }
+    if (cd[PW.giant] <= 0 && foesNear(h, 7) >= 2 && Math.random() < 0.35) { usePower(t, PW.giant, h); return; }
     const wall = att > 0 ? h.zx1 : h.zx0;
-    if (cd[4] <= 0 && Number.isFinite(wall) && Math.abs(wall - h.x) < 7 && foesNear(h, 6) >= 1 && Math.random() < 0.25) { usePower(t, 4, h); return; }
+    if (cd[PW.zone] <= 0 && Number.isFinite(wall) && Math.abs(wall - h.x) < 7 && foesNear(h, 6) >= 1 && Math.random() < 0.25) { usePower(t, PW.zone, h); return; }
+    if (cd[PW.slam] <= 0 && foesNear(h, 5) >= 3 && Math.random() < 0.25 && usePower(t, PW.slam, h)) return;   // swamped: slam them off
   }
-  if (h && h.team === t && ball.protected && cd[0] <= 0 && arm.perfect <= 0 && hyp(att * GL - h.x, h.y) < 58) { usePower(t, 0); return; }
-  if (!h && ball.state === 'air' && ball.kickTeam === t && cd[1] <= 0 && arm.sure <= 0 &&
-      players.some(o => o.team !== t && hyp(o.x - focus.x, o.y - focus.y) < 4)) { usePower(t, 1); return; }
-  if (h && h.team !== t && !ball.protected && h.giantT <= 0 && cd[2] <= 0 && arm.super <= 0 && h.holdTime > 0.8 &&
-      players.some(o => o.team === t && !controlled(o) && hyp(o.x - h.x, o.y - h.y) < 6)) usePower(t, 2);
+  if (cd[PW.slam] <= 0 && !h && ball.state === 'air' && landTime() < 0.9) {   // a pack under the ball: clear it
+    const q = nearestOf(t, focus.x, focus.y, true);
+    if (q && hyp(q.x - focus.x, q.y - focus.y) < 3 && foesNear(q, SLAM.r * 0.7) >= 2 && Math.random() < 0.3 && usePower(t, PW.slam, q)) return;
+  }
+  if (h && h.team === t && ball.protected && cd[PW.perfect] <= 0 && arm.perfect <= 0 && hyp(att * GL - h.x, h.y) < 58) { usePower(t, PW.perfect); return; }
+  if (!h && ball.state === 'air' && ball.kickTeam === t && cd[PW.sure] <= 0 && arm.sure <= 0 &&
+      players.some(o => o.team !== t && hyp(o.x - focus.x, o.y - focus.y) < 4)) usePower(t, PW.sure);
 }
 
 // ---------------------------------------------------------------- marking contests: shoves and speckys
@@ -936,7 +937,7 @@ function doShove(p) {
 function startJump(p) {
   if (!p || !canAct(p) || p.giantT > 0) return;
   const [dx, dy] = moveDir(p);
-  let climb = null, bd = JUMP.climb;                  // someone right in front, the way you're going: go up their back
+  let climb = null, bd = contestFor(p) ? JUMP.climb : 0;   // ball dropping, someone right in front: go up their back
   for (const o of players) {
     if (o === p || o.jumpT > 0) continue;
     const ox = o.x - p.x, oy = o.y - p.y, d = hyp(ox, oy);
@@ -981,7 +982,7 @@ function aiContest(dt) {
 // bowled over by a Gigaplayer, or knocked flying by someone boosting
 function flatten(v, ux, uy, spd = 9, why = 'flattened') {
   if (v.bumpCd > 0) return;
-  v.bumpCd = 1.2; v.down = 0.8; v.lunge = null; v.charge = 0; v.jumpT = 0; v.climb = null;
+  v.bumpCd = 1.2; v.down = 0.8; v.lunge = null; v.charge = 0; v.jumpT = 0; v.climb = null; v.slamT = 0;
   v.vx = ux * spd; v.vy = uy * spd;
   bump(why);
   if (ball.holder === v) spill(v, true);
@@ -1006,6 +1007,28 @@ function boostKnocks() {
       if (inBack && contestFor(v)) { awardFree(v, 'PUSH IN THE BACK'); return; }
     }
   }
+}
+// Ground slam landing: every opponent within reach flies straight out, harder the closer they were.
+// A Gigaplayer holds their ground, and anyone up in a jump is over it
+function groundSlam(p) {
+  bump('slam');
+  addWave(p.x, p.y);
+  p.jump = 0.35;
+  for (const v of players) {
+    if (v.team === p.team || v.giantT > 0 || v.leapT > 0 || v.jumpT > 0) continue;
+    const ox = v.x - p.x, oy = v.y - p.y, d = hyp(ox, oy);
+    if (d > SLAM.r) continue;
+    const ux = d > 0.01 ? ox / d : 1, uy = d > 0.01 ? oy / d : 0;
+    v.bumpCd = 0;
+    flatten(v, ux, uy, lerp(SLAM.spd[0], SLAM.spd[1], d / SLAM.r), 'slammed');
+    v.down = SLAM.down; v.flyT = SLAM.fly;
+  }
+}
+// the shockwave ring, drawn on both screens
+const waves = [];
+function addWave(x, y) {
+  waves.push({ x, y, t: 0 });
+  if (net.mode === 'host' && net.conn && net.conn.open) net.conn.send({ t: 'wave', x: r1(x), y: r1(y) });
 }
 
 // ---------------------------------------------------------------- ball physics
@@ -1318,7 +1341,7 @@ function update(dt) {
   for (const t of [HOME, AWAY]) {                     // holding Space without the ball winds up a dive
     const c = ctrl[t];
     if (!c) continue;
-    if (pad[t].space && ball.holder !== c && canAct(c)) c.charge = Math.min(1, c.charge + dt / DIVE.charge * (game.arm[t].super > 0 ? 3 : 1));
+    if (pad[t].space && ball.holder !== c && canAct(c)) c.charge = Math.min(1, c.charge + dt / DIVE.charge);
     else if (!pad[t].space || ball.holder === c) c.charge = 0;
   }
   if (phase === 'play') boostKnocks();
@@ -1330,7 +1353,7 @@ function update(dt) {
     if (phase === 'play') { resolveBall(); tackles(dt); playOnCheck(); aiContest(dt); tokenCheck(); }
   }
   if (ball.fieldA > 0 && ball.state !== 'air') ball.fieldA = Math.max(0, ball.fieldA - dt * 1.5);
-  for (const p of players) p.lift = jumpLift(p);
+  for (const p of players) p.lift = Math.max(jumpLift(p), p.slamT > 0 ? 1.6 * Math.sin(Math.PI / 2 * (1 - p.slamT / SLAM.rise)) : 0);
   for (const t of [HOME, AWAY]) {
     for (let n = 0; n < POWERS.length; n++) if (game.cd[t][n] > 0) game.cd[t][n] = Math.max(0, game.cd[t][n] - dt);
     for (const k in game.arm[t]) if (game.arm[t][k] > 0) game.arm[t][k] = Math.max(0, game.arm[t][k] - dt);
@@ -1344,6 +1367,7 @@ function update(dt) {
 // what only this browser needs each frame, whoever runs the match
 function localTick(dt) {
   hoverP = ball.holder !== human ? pickTeammate(mouse.x, mouse.y) : null;
+  for (let i = waves.length - 1; i >= 0; i--) if ((waves[i].t += dt) >= 0.5) waves.splice(i, 1);
   updateCamera(dt);
   updPowersHud(); updPlanHud();
   if (bannerT > 0) { bannerT -= dt; if (bannerT <= 0) bannerEl.classList.remove('show'); }
@@ -1415,6 +1439,7 @@ function finishDrawing() {
 cv.addEventListener('pointerdown', e => {
   mouse.x = e.clientX; mouse.y = e.clientY;
   if (!running || paused || (e.button !== 0 && e.button !== 2)) return;
+  if (aim && e.button !== aim.btn) { aim = null; return; }   // the other button calls the kick off
   if (canDraw()) {                                    // drawing a play: grab a teammate and drag their run
     const p = pickTeammate(e.clientX, e.clientY);
     if (p && e.button === 0) {
@@ -1435,6 +1460,8 @@ cv.addEventListener('pointerdown', e => {
 });
 cv.addEventListener('pointermove', e => {
   mouse.x = e.clientX; mouse.y = e.clientY;
+  // a second button pressed while one's held arrives here, not as a pointerdown: it calls the kick off too
+  if (aim && (e.buttons & (aim.btn === 0 ? 2 : 1))) aim = null;
   if (!drawing) return;
   const [wx, wy] = s2w(mouse.x, mouse.y), q = drawing.pts[drawing.pts.length - 1];
   if (hyp(wx - q[0], wy - q[1]) > 1.2 && drawing.pts.length < 80) drawing.pts.push([wx, wy]);
@@ -1455,23 +1482,21 @@ window.addEventListener('keydown', e => {
   keys[e.code] = true;
   if (e.repeat) return;
   if (e.code === 'KeyQ') takeNearest();
-  if (e.code === 'Space') {
-    spaceAt = performance.now();
-    if (running && !paused) {
-      const [x, y] = readKeys();
-      if (contestFor(human)) act({ a: 'jump', x, y });   // the ball's dropping near you: jump for it
-      else act({ a: 'leap', x, y });                  // the jump, the instant you press, so you can time it against a tackle
-    }                                                 // keep holding and it winds up a tackle
-  }
-  if (/^Digit[1-5]$/.test(e.code) && running && !paused) act({ a: 'power', n: Number(e.code.slice(5)) - 1 });
+  if (e.code === 'Space') spaceAt = performance.now();   // winds up a tackle from the press; a quick tap jumps instead
+  if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && running && !paused) {
+    const [x, y] = readKeys();
+    act({ a: 'leap', x, y });                         // the burst, the instant you press, so you can time it against a tackle
+  }                                                   // keep holding and it's the boost
+  if (/^Digit[1-9]$/.test(e.code) && running && !paused) act({ a: 'power', n: Number(e.code.slice(5)) - 1 });
   if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
 });
 window.addEventListener('keyup', e => {
   keys[e.code] = false;
-  if (e.code === 'Space') {
-    const held = tackleHeld();
+  if (e.code === 'Space' && spaceAt) {
+    const tap = performance.now() - spaceAt < TAP_HOLD;
     spaceAt = 0;
-    if (held) { const [x, y] = readKeys(); act({ a: 'dive', x, y }); }   // let go of a held Space: dive
+    const [x, y] = readKeys();
+    act({ a: tap ? 'jump' : 'dive', x, y });          // a tap jumps; let go of a hold and you dive
   }
 });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; aim = null; spaceAt = 0; if (human) human.charge = 0; });
@@ -1557,7 +1582,7 @@ function newGame() {
   game.g = [0, 0]; game.b = [0, 0]; game.q = 1; game.clock = QUARTER;
   ctrl[0] = ctrl[1] = null; human = null;
   pad[0] = blankPad(); pad[1] = blankPad();
-  game.cd = [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0]]; game.arm = [noArms(), noArms()]; game.slowmo = 0;
+  game.cd = [noCds(), noCds()]; game.arm = [noArms(), noArms()]; game.slowmo = 0;
   game.tokens = Array.from({ length: TOKEN.n }, (_, k) => spawnToken({}, k));
   net.routes.clear(); drawing = null;
   initPlayers(); setupBounce();
@@ -1729,7 +1754,7 @@ function applyAction(team, m) {
     if (Number.isFinite(x) && Number.isFinite(y) && hyp(x, y) <= 1.01) { pad[team].x = x; pad[team].y = y; }
     if (m.a === 'leap') tryLeap(c);
     else if (m.a === 'dive') releaseDive(team);
-    else if (contestFor(c)) startJump(c); else tryLeap(c);
+    else startJump(c);
   } else if (m.a === 'power') { const n = Number(m.n); if (n >= 0 && n < POWERS.length) usePower(team, n); }
   else if (m.a === 'route') setRoute(team, Number(m.i), m.pts);
   else if (m.a === 'unroute') { const p = players[Number(m.i)]; if (p && p.team === team) p.route = null; }
@@ -1741,7 +1766,7 @@ function snapshot() {
   for (const p of players) {
     P.push(r2(p.x), r2(p.y), r2(p.fx), r2(p.fy), r1(p.vx), r1(p.vy), r2(p.jump), r2(p.stun),
       r2(p.down), r2(p.charge), r2(p.leapT), p.lunge ? 1 : 0, r2(p.leapCd), r2(p.en), p.sprinting ? 1 : 0,
-      r2(p.giantT), r2(p.zoneT), r2(p.lift || 0), p.climb ? 1 : 0, p.route ? (p.route.go ? 2 : 1) : 0);
+      r2(p.giantT), r2(p.zoneT), r2(p.lift || 0), p.climb ? 1 : 0, p.route ? (p.route.done ? 2 : 1) : 0);
   }
   const b = ball, f = b.field;
   return {
@@ -1753,7 +1778,7 @@ function snapshot() {
     c: [ctrl[0] ? ctrl[0].id : -1, ctrl[1] ? ctrl[1].id : -1],
     fo: [r1(focus.x), r1(focus.y)],
     pw: [...game.cd[0], ...game.cd[1]].map(r1),
-    ar: [game.arm[0].perfect, game.arm[0].sure, game.arm[0].super, game.arm[1].perfect, game.arm[1].sure, game.arm[1].super].map(r1),
+    ar: [game.arm[0].perfect, game.arm[0].sure, game.arm[1].perfect, game.arm[1].sure].map(r1),
     pl: plan ? [plan.kind === 'mark' ? 1 : 2, plan.team, r1(plan.left)] : null,
     tk: game.tokens.map(tk => [r1(tk.x), r1(tk.y), tk.wait > 0 ? 0 : 1]),
   };
@@ -1817,6 +1842,7 @@ function onHostData(m) {
     cam.s = baseScale();
     started = true; play();
   } else if (m.t === 'banner') showBanner(String(m.text).slice(0, 40), String(m.color || '#fff'), Number(m.dur) || 1.2);
+  else if (m.t === 'wave' && Number.isFinite(m.x) && Number.isFinite(m.y) && waves.length < 8) waves.push({ x: m.x, y: m.y, t: 0 });
   else if (m.t === 'over') { running = false; menu('fulltime'); }
   else if (m.t === 'full') menu('error', { msg: 'That match already has two players.' });
 }
@@ -1849,10 +1875,11 @@ function applySnapshot(s) {
   ctrl[1] = s.c[1] >= 0 ? players[s.c[1]] || null : null;
   human = ctrl[me];
   focus.x = s.fo[0]; focus.y = s.fo[1];
-  if (Array.isArray(s.pw) && s.pw.length === 10) { game.cd[0] = s.pw.slice(0, 5); game.cd[1] = s.pw.slice(5); }
-  if (Array.isArray(s.ar) && s.ar.length === 6) {
-    game.arm[0] = { perfect: s.ar[0], sure: s.ar[1], super: s.ar[2] };
-    game.arm[1] = { perfect: s.ar[3], sure: s.ar[4], super: s.ar[5] };
+  const NPW = POWERS.length;
+  if (Array.isArray(s.pw) && s.pw.length === NPW * 2) { game.cd[0] = s.pw.slice(0, NPW); game.cd[1] = s.pw.slice(NPW); }
+  if (Array.isArray(s.ar) && s.ar.length === 4) {
+    game.arm[0] = { perfect: s.ar[0], sure: s.ar[1] };
+    game.arm[1] = { perfect: s.ar[2], sure: s.ar[3] };
   }
   plan = Array.isArray(s.pl) ? { kind: s.pl[0] === 1 ? 'mark' : 'token', team: s.pl[1], left: s.pl[2] } : null;
   if (Array.isArray(s.tk)) game.tokens = s.tk.map(q => ({ x: q[0], y: q[1], wait: q[2] ? 0 : 1 }));
@@ -2203,6 +2230,13 @@ function render() {
   drawMark(S);
   drawTokens(S);
   if (ball.field && ball.fieldA > 0) drawSpread(ball.field, 0.75 * ball.fieldA, ball.field.person === me ? AMBER : TEAM[ball.field.team].light, S);
+  for (const w of waves) {                            // Ground slam: a ring rushing out to the edge of its reach
+    const k = w.t / 0.5, R = 1 + (SLAM.r - 1) * Math.sqrt(k);
+    ctx.fillStyle = `rgba(255,255,255,${0.16 * (1 - k)})`;
+    ctx.beginPath(); ctx.arc(w.x, w.y, R, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = `rgba(255,255,255,${0.9 * (1 - k)})`; ctx.lineWidth = (5 - 3 * k) / S;
+    ctx.stroke();
+  }
   const a = aimInfo();
   if (a && a.f) {
     ctx.save();
@@ -2288,7 +2322,7 @@ requestAnimationFrame(frame);
 // handle for poking at the match from the console
 window.footy = {
   players, ball, game, focus, cam, stats, give, dispose, spreadFor, setHuman, update, aiDispose,
-  net, ctrl, pad, snapshot, applyAction, usePower, startJump, doShove, contestFor, endPlan, landTime, catchBy, active,
+  net, ctrl, pad, snapshot, applyAction, usePower, startJump, doShove, contestFor, endPlan, landTime, catchBy, active, waves,
   get phase() { return phase; }, get human() { return human; }, get me() { return me; }, get plan() { return plan; },
 };
 })();
