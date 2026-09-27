@@ -158,7 +158,7 @@
     <dl class="controls">
       <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>Run</dd>
       <dt><kbd>Left-click</kbd></dt><dd>Kick. Hold, pull back, let go. The further you pull, the longer the kick and the wider the area it could land in.</dd>
-      <dt><kbd>Left-drag</kbd></dt><dd>Without the ball: tackle. Press, pull back and let go, and you launch yourself the other way; the further you pull, the further you fly. You glow while you're pulling, same as any tackle. A quick click on a teammate still takes them over.</dd>
+      <dt><kbd>Left-drag</kbd></dt><dd>Without the ball: tackle. Press, pull back and let go, and you launch yourself the other way. Like a kick, the red area shows where you could land: the further you pull, the further you fly and the wider it gets. You're in the air on the way, so only where you land counts. You glow while you're pulling, same as any tackle. A quick click on a teammate still takes them over.</dd>
       <dt><kbd>Right-click</kbd></dt><dd>Handball, the same way. Shorter and safer.</dd>
       <dt><kbd>Click a teammate</kbd></dt><dd>Take them over whenever you don't have the ball. Run under it to catch it.</dd>
       <dt><kbd>&larr;</kbd><kbd>&rarr;</kbd></dt><dd>Switch between your players near the ball and near where it's coming down, left to right. Every kick puts you on the one nearest where it's coming down to start with.</dd>
@@ -207,7 +207,8 @@ const HAND = { min: 3, max: 21, sL: [0.35, 2.6], sT: [0.25, 1.8], z0: 1.0 };
 const FULL_DRAG = 230;                            // px of pull for full power
 const QUARTER = 300;
 // power moves. spd in m/s, times in seconds
-const DIVE = { charge: 0.2, dur: 0.38, spd: [8, 25.5], down: 0.65, reach: 0.8 };  // your tackle: hold Space to wind it up (reach: extra metres it grabs)
+const DIVE = { charge: 0.2, dur: 0.38, down: 0.65, reach: 0.8 };  // your tackle: pull with the mouse or hold Space (reach: extra metres it grabs)
+const TACKLE = { min: 3, max: 10, sL: [0.25, 2.0], sT: [0.2, 1.4] };  // metres, and the landing spread along / across, like KICK
 const LUNGE = { range: 4.6, windup: [0.55, 0.85], dur: 0.34, spd: 12.5, down: 0.75 }; // theirs
 const LEAP = { dur: 0.28, spd: 15, cd: 1.1, reach: 4.5, hit: 18, fly: 0.5 };   // a person's charge: whoever it hits leaves at hit m/s
 const TAP_HOLD = 180;                              // ms: let go sooner than this and it's a tap (Space: jump, Shift: charge)
@@ -670,11 +671,18 @@ const boostHeld = () => !!(keys.ShiftLeft || keys.ShiftRight);
 const tackleHeld = () => !!spaceAt || !!(tack && tack.moved);
 // tackling with the mouse, like a kick: press, pull back, let go and you launch the other way
 let tack = null;                                      // { sx, sy: where the press was, pick: teammate id under it or -1, moved }
+function tackleZone() {
+  if (!human) return null;
+  if (human.lunge && human.lunge.air) return human.lunge.field;
+  if (human.charge <= 0 || ball.holder === human) return null;
+  const ti = tack && tack.moved ? tackleInfo(tack) : null;   // pulling with the mouse: that way, that far
+  const [dx, dy] = ti ? [ti.dx, ti.dy] : moveDir(human);
+  return tackleField(human.x, human.y, dx, dy, ti ? ti.power : human.charge);
+}
 function tackleInfo(t) {
   const dx = t.sx - mouse.x, dy = t.sy - mouse.y, len = hyp(dx, dy);
   return len < 12 ? null : { dx: dx / len, dy: dy / len, power: clamp(len / FULL_DRAG, 0.05, 1) };
 }
-const diveSpeed = c => lerp(DIVE.spd[0], DIVE.spd[1], c);
 function startLunge(p, dx, dy, spd, dur, downT) {
   p.lunge = { t: 0, dur, dx, dy, spd, downT };
   p.charge = 0;
@@ -701,8 +709,42 @@ function releaseDive(team, power) {                  // power: from a mouse pull
   if (!canAct(p) || ball.holder === p) return;
   bump('dive');
   const [dx, dy] = moveDir(p);
-  startLunge(p, dx, dy, diveSpeed(c), DIVE.dur, DIVE.down);
-  p.lunge.reach = DIVE.reach;
+  const f = tackleField(p.x, p.y, dx, dy, c);          // where it's aimed, and how far it could stray
+  const g1 = clamp(gauss(), -2.5, 2.5), g2 = clamp(gauss(), -2.5, 2.5);
+  const lx = f.x + dx * g1 * f.sL - dy * g2 * f.sT, ly = f.y + dy * g1 * f.sL + dx * g2 * f.sT;
+  const d = hyp(lx - p.x, ly - p.y) || 0.1;
+  startLunge(p, (lx - p.x) / d, (ly - p.y) / d, d / DIVE.dur, DIVE.dur, DIVE.down);
+  Object.assign(p.lunge, { reach: DIVE.reach, air: true, field: f });   // in the air: only the landing counts
+}
+// a diving tackle lands like a kick: aimed at a spot, straying further the harder you go
+function tackleField(x, y, dx, dy, power) {
+  const d = lerp(TACKLE.min, TACKLE.max, power), e = power ** 1.4;
+  return { x: x + dx * d, y: y + dy * d, dx, dy, d, sL: lerp(TACKLE.sL[0], TACKLE.sL[1], e), sT: lerp(TACKLE.sT[0], TACKLE.sT[1], e) };
+}
+// a dive meeting a body: the ball carrier is tackled; anyone else goes down. True if it hit someone
+function diveContact(p, L) {
+  const h = ball.holder;
+  if (h && h.team !== p.team && !ball.protected && h.leapT <= 0 && h.slamT <= 0 && hyp(h.x - p.x, h.y - p.y) < PR * 2 + 0.35 + (L.reach || 0)) {
+    if (h.giantT > 0) { p.lunge = null; p.down = 0.9; p.vx = -L.dx * 4; p.vy = -L.dy * 4; bump('bounced'); return true; }  // bounced off a Gigaplayer
+    p.lunge = null; p.vx *= 0.3; p.vy *= 0.3;
+    bump('diveHit');
+    tackle(p, h);
+    if (ball.holder !== p) p.down = 0.3;
+    return true;
+  }
+  for (const v of players) {                          // anyone else the dive meets goes down too
+    if (v === h || v.team === p.team || v.down > 0 || v.bumpCd > 0 || v.leapT > 0 || v.slamT > 0) continue;
+    const ox = v.x - p.x, oy = v.y - p.y, d = hyp(ox, oy);
+    if (d >= PR * 2 + 0.35) continue;
+    if (v.giantT > 0) { p.lunge = null; p.down = 0.9; p.vx = -L.dx * 4; p.vy = -L.dy * 4; bump('bounced'); return true; }
+    if (game.arm[v.team].sure > 0 && contestFor(v)) continue;   // a guaranteed mark holds their ground
+    const inBack = (v.fx * ox + v.fy * oy) / (d || 1) > 0.55;
+    p.lunge = null; p.vx *= 0.3; p.vy *= 0.3; p.down = 0.3;
+    flatten(v, L.dx, L.dy, 8, 'diveKnock');
+    if (inBack && contestFor(v)) awardFree(v, 'PUSH IN THE BACK');
+    return true;
+  }
+  return false;
 }
 function startLeap(p, dx, dy) {
   bump('leap');
@@ -734,27 +776,11 @@ function moveSpecial(p, dt) {
       catchBy(p, mark);
       return true;
     }
-    const h = ball.holder;
-    if (h && h.team !== p.team && !ball.protected && h.leapT <= 0 && h.slamT <= 0 && hyp(h.x - p.x, h.y - p.y) < PR * 2 + 0.35 + (L.reach || 0)) {
-      if (h.giantT > 0) { p.lunge = null; p.down = 0.9; p.vx *= -0.3; p.vy *= -0.3; bump('bounced'); return true; }  // bounced off a Gigaplayer
-      p.lunge = null; p.vx *= 0.3; p.vy *= 0.3;
-      bump('diveHit');
-      tackle(p, h);
-      if (ball.holder !== p) p.down = 0.3;
+    if (L.air) {                                      // your dive: flying over everyone, it only counts where it lands
+      if (L.t >= L.dur) { p.lunge = null; p.vx *= 0.2; p.vy *= 0.2; if (!diveContact(p, L)) { p.down = L.downT; bump('diveMiss'); } }
       return true;
     }
-    for (const v of players) {                        // anyone else the dive runs into goes down too
-      if (v === h || v.team === p.team || v.down > 0 || v.bumpCd > 0 || v.leapT > 0 || v.slamT > 0) continue;
-      const ox = v.x - p.x, oy = v.y - p.y, d = hyp(ox, oy);
-      if (d >= PR * 2 + 0.35) continue;
-      if (v.giantT > 0) { p.lunge = null; p.down = 0.9; p.vx *= -0.3; p.vy *= -0.3; bump('bounced'); return true; }
-      if (game.arm[v.team].sure > 0 && contestFor(v)) continue;   // a guaranteed mark holds their ground
-      const inBack = (v.fx * ox + v.fy * oy) / (d || 1) > 0.55;
-      p.lunge = null; p.vx *= 0.3; p.vy *= 0.3; p.down = 0.3;
-      flatten(v, L.dx, L.dy, 8, 'diveKnock');
-      if (inBack && contestFor(v)) awardFree(v, 'PUSH IN THE BACK');
-      return true;
-    }
+    if (diveContact(p, L)) return true;
     if (L.t >= L.dur) { p.lunge = null; p.down = L.downT; }
     return true;
   }
@@ -1253,8 +1279,8 @@ function aiCarry(p, dt) {
     if (p.holdTime > p.think) aiDispose(p, false);
     return;
   }
-  let near = null, nd = Infinity;
-  for (const o of players) if (o.team !== p.team) { const d = hyp(o.x - p.x, o.y - p.y); if (d < nd) { nd = d; near = o; } }
+  let near = null, nd = Infinity;                      // who's closing in (someone flying at them in a dive isn't seen until they land)
+  for (const o of players) if (o.team !== p.team && !(o.lunge && o.lunge.air)) { const d = hyp(o.x - p.x, o.y - p.y); if (d < nd) { nd = d; near = o; } }
   const pressured = nd < 3.2;
   const dG = hyp(att * GL - p.x, p.y);
   const wallAhead = att > 0 ? p.zx1 : p.zx0;          // can't run through it, so pass before it
@@ -1343,6 +1369,7 @@ function separate() {
     for (let j = i + 1; j < players.length; j++) {
       const b = players[j];
       if (a.climb === b || b.climb === a) continue;   // a specky: one's up on the other's back
+      if ((a.lunge && a.lunge.air) || (b.lunge && b.lunge.air)) continue;   // a diving tackle flies over them
       const min = ra + PR * (b.giantT > 0 ? 2 : 1);
       let dx = b.x - a.x, dy = b.y - a.y, d2 = dx * dx + dy * dy;
       if (d2 >= min * min) continue;
@@ -1425,7 +1452,10 @@ function update(dt) {
     if (phase === 'play') { resolveBall(); tackles(dt); playOnCheck(); aiContest(dt); tokenCheck(); }
   }
   if (ball.fieldA > 0 && ball.state !== 'air') ball.fieldA = Math.max(0, ball.fieldA - dt * 1.5);
-  for (const p of players) p.lift = Math.max(jumpLift(p), p.slamT > 0 ? 1.6 * Math.sin(Math.PI / 2 * (1 - p.slamT / SLAM.rise)) : 0);
+  for (const p of players) {
+    p.lift = Math.max(jumpLift(p), p.slamT > 0 ? 1.6 * Math.sin(Math.PI / 2 * (1 - p.slamT / SLAM.rise)) : 0,
+      p.lunge && p.lunge.air ? 1.3 * Math.sin(Math.PI * Math.min(1, p.lunge.t / p.lunge.dur)) : 0);   // a diving tackle arcs
+  }
   for (const t of [HOME, AWAY]) {
     for (let n = 0; n < POWERS.length; n++) if (game.cd[t][n] > 0) game.cd[t][n] = Math.max(0, game.cd[t][n] - dt);
     for (const k in game.arm[t]) if (game.arm[t][k] > 0) game.arm[t][k] = Math.max(0, game.arm[t][k] - dt);
@@ -2198,16 +2228,6 @@ function drawPlayer(p, S) {
     if (c > 0.8 && Math.sin(game.t * 38) > 0) { ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fill(); }
     ctx.strokeStyle = rgba(col, 0.45 + 0.55 * c); ctx.lineWidth = (1.5 + 2 * c) / S;
     ctx.beginPath(); ctx.arc(p.x, p.y, r + 0.35 + (1 - c) * 2.4, 0, Math.PI * 2); ctx.stroke();
-    if (p === human) {                                 // where your dive will take you
-      const ti = tack && tack.moved ? tackleInfo(tack) : null;   // pulling with the mouse: that way, that far
-      const [dx, dy] = ti ? [ti.dx, ti.dy] : moveDir(p), len = diveSpeed(ti ? ti.power : c) * DIVE.dur;
-      const ex = p.x + dx * (len + r), ey = p.y + dy * (len + r);
-      ctx.strokeStyle = rgba(AMBER, 0.8); ctx.lineWidth = 2 / S;
-      ctx.beginPath(); ctx.moveTo(p.x + dx * r, p.y + dy * r); ctx.lineTo(ex, ey); ctx.stroke();
-      ctx.fillStyle = rgba(AMBER, 0.9);
-      ctx.beginPath(); ctx.moveTo(ex + dx * 0.7, ey + dy * 0.7);
-      ctx.lineTo(ex - dy * 0.45, ey + dx * 0.45); ctx.lineTo(ex + dy * 0.45, ey - dx * 0.45); ctx.closePath(); ctx.fill();
-    }
   }
   if (p === human) {
     ctx.strokeStyle = rgba(AMBER, 1); ctx.lineWidth = 2.6 / S;
@@ -2362,6 +2382,14 @@ function render() {
   drawMark(S);
   drawTokens(S);
   if (ball.field && ball.fieldA > 0) drawSpread(ball.field, 0.75 * ball.fieldA, ball.field.person === me ? AMBER : TEAM[ball.field.team].light, S);
+  const tz = tackleZone();                            // where your tackle could land, while you line it up and while you fly
+  if (tz) {
+    drawSpread(tz, 0.8, HOT, S);
+    if (human.charge > 0) {
+      ctx.save(); ctx.strokeStyle = rgba(HOT, 0.75); ctx.lineWidth = 1.6 / S; ctx.setLineDash([7 / S, 6 / S]);
+      ctx.beginPath(); ctx.moveTo(human.x, human.y); ctx.lineTo(tz.x, tz.y); ctx.stroke(); ctx.restore();
+    }
+  }
   for (const w of waves) {                            // Ground slam: a ring rushing out to the edge of its reach
     const k = w.t / 0.5, R = 1 + (SLAM.r - 1) * Math.sqrt(k);
     ctx.fillStyle = `rgba(255,255,255,${0.16 * (1 - k)})`;
