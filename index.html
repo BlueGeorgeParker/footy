@@ -160,6 +160,7 @@
       <dt><kbd>Left-click</kbd></dt><dd>Kick. Hold, pull back, let go. The further you pull, the longer the kick and the wider the area it could land in.</dd>
       <dt><kbd>Right-click</kbd></dt><dd>Handball, the same way. Shorter and safer.</dd>
       <dt><kbd>Click a teammate</kbd></dt><dd>Take them over whenever you don't have the ball. Run under it to catch it.</dd>
+      <dt><kbd>&larr;</kbd><kbd>&rarr;</kbd></dt><dd>Switch between your players near the ball and near where it's coming down, left to right</dd>
       <dt><kbd>Q</kbd></dt><dd>Take over the teammate closest to where the ball is coming down</dd>
       <dt><kbd>Space</kbd></dt><dd>Tap to jump: for the mark when the ball's dropping near you, and from right behind someone you climb them for a specky. A jump also clears a ground slam. Hold to wind up a diving tackle straight away, and let go to dive. The dive knocks down any opponent it hits, ball or not.</dd>
       <dt><kbd>Shift</kbd></dt><dd>Tap to charge: a burst forward nobody can tackle. Hit an opponent and you stop dead while they go down and fly off with your speed, ball or not. Hold to sprint (it uses the bar under your player); sprint into an opponent who hasn't got the ball and you knock them out of the way. That's also how you push someone off the spot in a marking contest.</dd>
@@ -652,9 +653,9 @@ function tackle(o, h) {
 
 // ---------------------------------------------------------------- power moves
 function canAct(p) { return phase === 'play' && p.down <= 0 && !p.lunge && p.leapT <= 0 && p.stun <= 0 && !(p.jumpT > 0) && !(p.slamT > 0); }
-function readKeys() {                                // this browser's WASD (or arrows) as a unit vector
-  const ix = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
-  const iy = (keys.KeyS || keys.ArrowDown ? 1 : 0) - (keys.KeyW || keys.ArrowUp ? 1 : 0);
+function readKeys() {                                // this browser's WASD as a unit vector
+  const ix = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0);
+  const iy = (keys.KeyS ? 1 : 0) - (keys.KeyW ? 1 : 0);
   const l = hyp(ix, iy);
   return l ? [ix / l, iy / l] : [0, 0];
 }
@@ -1476,6 +1477,16 @@ function pickTeammate(sx, sy, andYou) {
   }
   return best;
 }
+// Left / Right arrows: step through your players near the ball and near where it's coming down, left to right
+function cycleNear(dir) {
+  if (!running || paused || !human || ball.holder === human) return;
+  const near = p => Math.min(hyp(p.x - ball.x, p.y - ball.y), hyp(p.x - focus.x, p.y - focus.y));
+  const list = players.filter(p => p.team === me && p !== human && near(p) < 30).sort((a, b) => near(a) - near(b)).slice(0, 6);
+  if (!list.length) return;
+  list.push(human);
+  list.sort((a, b) => a.x - b.x || a.y - b.y);
+  act({ a: 'pick', i: list[(list.indexOf(human) + dir + list.length) % list.length].id });
+}
 function takeNearest() {
   if (!running || paused || ball.holder === human) return;
   act({ a: 'nearest' });
@@ -1562,6 +1573,8 @@ window.addEventListener('keydown', e => {
   keys[e.code] = true;
   if (e.repeat) return;
   if (e.code === 'KeyQ') takeNearest();
+  if (e.code === 'ArrowRight') cycleNear(1);
+  if (e.code === 'ArrowLeft') cycleNear(-1);
   if (e.code === 'Space') spaceAt = performance.now();   // winds up a tackle from the press; a quick tap jumps instead
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') shiftAt = performance.now();   // held: sprint; a quick tap: charge
   if (/^Digit[1-9]$/.test(e.code) && running && !paused) act({ a: 'power', n: Number(e.code.slice(5)) - 1 });

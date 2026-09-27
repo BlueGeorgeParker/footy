@@ -20,6 +20,7 @@ The match runs in the host's browser, so the host keeps their tab open and in fr
 | Left-click, pull back, let go | Kick. Further pull, longer kick, wider landing area |
 | Right-click, pull back, let go | Handball |
 | Click a teammate | Take them over when you don't have the ball |
+| ← → | Switch between your players near the ball and near where it's coming down, left to right |
 | Q | Take over the teammate closest to where the ball is coming down |
 | Space | Tap: jump the way you're running (can't be tackled mid-jump), or jump for a mark when the ball's dropping near you. Hold: wind up a diving tackle, let go to dive |
 | Shift | Tap: charge forward (can't be tackled mid-charge); hit an opponent and they fly off with your speed. Hold: sprint; run into an opponent without the ball to knock them out of the way |
