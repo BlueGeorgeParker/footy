@@ -162,7 +162,7 @@
       <dt><kbd>Click a teammate</kbd></dt><dd>Take them over whenever you don't have the ball. Run under it to catch it.</dd>
       <dt><kbd>&larr;</kbd><kbd>&rarr;</kbd></dt><dd>Switch between your players near the ball and near where it's coming down, left to right. Every kick puts you on the one nearest where it's coming down to start with.</dd>
       <dt><kbd>Q</kbd></dt><dd>Take over the teammate closest to where the ball is coming down</dd>
-      <dt><kbd>Space</kbd></dt><dd>Tap to jump: for the mark when the ball's dropping near you, and from right behind someone you climb them for a specky. A jump also clears a ground slam. Hold to wind up a diving tackle straight away, and let go to dive. The dive knocks down any opponent it hits, ball or not.</dd>
+      <dt><kbd>Space</kbd></dt><dd>Tap to jump: for the mark when the ball's dropping near you, and from right behind someone you climb them for a specky. A jump also clears a ground slam. Hold to wind up a diving tackle straight away, and let go to dive. The dive knocks down any opponent it hits, ball or not, and dive through the ball to take it, however high it is.</dd>
       <dt><kbd>Shift</kbd></dt><dd>Tap to charge: a burst forward nobody can tackle. Hit an opponent and you stop dead while they go down and fly off with your speed, ball or not. Hold to sprint (it uses the bar under your player); sprint into an opponent who hasn't got the ball and you knock them out of the way. That's also how you push someone off the spot in a marking contest.</dd>
       <dt><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><kbd>5</kbd></dt><dd>Power-ups: perfect kick, guaranteed mark, Gigaplayer, Zone Pass, ground slam. Press the number or click it in the bar at the bottom. Each one recharges after you use it.</dd>
       <dt><kbd>Wheel</kbd></dt><dd>Zoom</dd>
@@ -720,6 +720,13 @@ function moveSpecial(p, dt) {
     L.t += dt;
     p.vx = L.dx * L.spd; p.vy = L.dy * L.spd; p.fx = L.dx; p.fy = L.dy;
     p.x += p.vx * dt; p.y += p.vy * dt;
+    if (!ball.holder && !ball.frozen && ball.state !== 'dead' && !excluded(p) &&   // a dive through the ball takes it, however high it is:
+        Math.min(hyp(ball.x - p.x, ball.y - p.y), hyp(ball.x - p.x, ball.y - ball.z * LIFT - p.y)) < CATCH_R + 0.5) {   // its shadow or the ball you see
+      const mark = ball.state === 'air' && ball.kickType === 'kick' && !ball.touched && hyp(ball.x - ball.from.x, ball.y - ball.from.y) >= 15;
+      bump('diveCatch');
+      catchBy(p, mark);
+      return true;
+    }
     const h = ball.holder;
     if (h && h.team !== p.team && !ball.protected && h.leapT <= 0 && h.slamT <= 0 && hyp(h.x - p.x, h.y - p.y) < PR * 2 + 0.35 + (L.reach || 0)) {
       if (h.giantT > 0) { p.lunge = null; p.down = 0.9; p.vx *= -0.3; p.vy *= -0.3; bump('bounced'); return true; }  // bounced off a Gigaplayer
