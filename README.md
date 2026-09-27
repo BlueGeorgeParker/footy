@@ -1,0 +1,29 @@
+# Footy Simulator
+
+Top-down Aussie rules in the browser, 18 a side. Play the computer, or send a friend a link and play each other online.
+
+**Play:** https://bluegeorgeparker.github.io/footy/
+
+## Playing a friend
+
+1. Open the game and press **Play a friend online**.
+2. Send your friend the link it shows. They open it and press **Join match**.
+3. You're Home (blue, kicking right); they're Away (red, kicking left). The computer plays everyone else.
+
+The match runs in the host's browser, so the host keeps their tab open and in front. The two browsers connect directly (via [PeerJS](https://peerjs.com)); there's no game server.
+
+## Controls
+
+| Key | What it does |
+| --- | --- |
+| WASD | Run |
+| Left-click, pull back, let go | Kick. Further pull, longer kick, wider landing area |
+| Right-click, pull back, let go | Handball |
+| Click a teammate | Take them over when you don't have the ball |
+| Q | Take over the teammate closest to where the ball is coming down |
+| Hold Space | With the ball: wind up a kick toward the pointer. Without: wind up a diving tackle |
+| Shift | Leap the way you're running; can't be tackled mid-leap |
+| Wheel | Zoom |
+| P | Pause |
+
+Everything is in `index.html`. Save that one file to play the computer offline.
