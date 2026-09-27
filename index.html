@@ -196,8 +196,8 @@ const G = 9.8;
 const PR = 0.95;                                  // player radius
 const REACH = 3.1, CATCH_R = 1.35, PICKUP_R = 1.2;
 // power 0..1 maps distance min..max; sL / sT = spread along / across the kick (1 sigma, metres)
-const KICK = { min: 12, max: 78, sL: [1.0, 10.5], sT: [0.7, 7.0], z0: 0.6 };
-const HAND = { min: 3, max: 24, sL: [0.35, 2.8], sT: [0.25, 1.9], z0: 1.0 };
+const KICK = { min: 10, max: 62, sL: [1.0, 9.0], sT: [0.7, 6.0], z0: 0.6 };   // same range as on a normal ground: the bigger ground has to be worked up
+const HAND = { min: 3, max: 21, sL: [0.35, 2.6], sT: [0.25, 1.8], z0: 1.0 };
 const FULL_DRAG = 230;                            // px of pull for full power
 const QUARTER = 300;
 // power moves. spd in m/s, times in seconds
@@ -528,7 +528,7 @@ function dispose(p, dx, dy, power, type) {
   const ly = f.y + dy * g1 * f.sL + dx * g2 * f.sT;
   const sx = p.x + dx * 0.5, sy = p.y + dy * 0.5;
   const d = hyp(lx - sx, ly - sy);
-  const T = type === 'kick' ? 0.45 + d / 22 : 0.22 + d / 15;
+  const T = type === 'kick' ? 0.45 + d / 19 : 0.22 + d / 15;
   p.fx = dx; p.fy = dy;
   const mom = manOnMark;
   launchRaw(sx, sy, c.z0, lx, ly, T, type, p);
@@ -1141,7 +1141,7 @@ function aiDispose(p, pressured) {
     if (d >= 4 && d <= HAND.max) consider({ type: 'hb', x: lx, y: ly, score: open * 0.75 + gain - 0.15 + (pressured ? 0.45 : 0) });
     if (d >= 16 && d <= KICK.max) consider({ type: 'kick', x: lx, y: ly, score: open * 0.75 + gain - 0.1 - (pressured ? 0.1 : 0) });
   }
-  consider({ tag: 'bomb', type: 'kick', x: clamp(p.x + att * 62, -GL + 5, GL - 5), y: p.y * 0.5, score: 0 }); // bomb it long
+  consider({ tag: 'bomb', type: 'kick', x: clamp(p.x + att * 50, -GL + 5, GL - 5), y: p.y * 0.5, score: 0 }); // bomb it long
   bump(best.tag || best.type);
   const c = best.type === 'kick' ? KICK : HAND;
   const dx = best.x - p.x, dy = best.y - p.y, d = hyp(dx, dy) || 1;
@@ -2047,7 +2047,7 @@ function drawRoutes(S, a) {
   }
   if (drawing && drawing.pts.length > 1) drawArrowLine(drawing.pts, 'rgba(255,255,255,.95)', S, false);
   if (a && a.f) {
-    const T = a.f.type === 'kick' ? 0.45 + a.f.d / 22 : 0.22 + a.f.d / 15;
+    const T = a.f.type === 'kick' ? 0.45 + a.f.d / 19 : 0.22 + a.f.d / 15;
     for (const p of players) {
       if (p.team !== me) continue;
       const pts = routeFor(p);
