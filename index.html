@@ -114,15 +114,16 @@
     border: 1px solid var(--panel-edge); border-radius: 6px; overflow: hidden; display: grid; gap: 3px;
     font: inherit; color: var(--ink); text-align: left; cursor: pointer; pointer-events: auto;
   }
-  .pw:hover { border-color: #6b8d74; }
-  .pw.cool { cursor: not-allowed; }
+  .pw { border-top: 3px solid var(--pc); }
+  .pw:hover { border-color: #6b8d74; border-top-color: var(--pc); }
+  .pw.cool { cursor: not-allowed; opacity: .45; }
   .pw:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
   .pw i { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: rgba(0,0,0,.6); }
   .pw kbd, .pw span, .pw b { position: relative; }
   .pw kbd { justify-self: start; }
   .pw span { font-size: 11px; font-weight: 600; line-height: 1.15; }
-  .pw b { position: absolute; right: 7px; top: 5px; font: 700 15px var(--display); color: var(--muted); font-variant-numeric: tabular-nums; }
-  .pw.on { border-color: var(--amber); box-shadow: inset 0 0 0 1px var(--amber), 0 0 18px rgba(255,207,51,.35); }
+  .pw b { position: absolute; right: 6px; top: 5px; font: 700 15px/1 sans-serif; letter-spacing: 1px; color: var(--pc); }
+  .pw.on { opacity: 1; border-color: var(--amber); box-shadow: inset 0 0 0 1px var(--amber), 0 0 18px rgba(255,207,51,.35); }
   @media (max-width: 760px) { .pw { width: 62px; } .pw span { font-size: 9px; } }
   @media (prefers-reduced-motion: reduce) { #banner { transition: none; } }
 </style>
@@ -158,21 +159,21 @@
     <dl class="controls">
       <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>Run</dd>
       <dt><kbd>Left-click</kbd></dt><dd>Kick. Hold, pull back, let go. The further you pull, the longer the kick and the wider the area it could land in.</dd>
-      <dt><kbd>Left-drag</kbd></dt><dd>Without the ball: tackle. Press, pull back and let go, and you launch yourself the other way. Like a kick, the red area shows where you could land: the further you pull, the further you fly and the wider it gets. You're in the air on the way, so only where you land counts. You glow while you're pulling, same as any tackle. A quick click without a pull takes over the teammate nearest the pointer instead.</dd>
-      <dt><kbd>Right-click</kbd></dt><dd>Handball, the same way. It only goes 35&nbsp;m, but it's quick and flat: there before a kick would be, though anyone in its path can pick it off, and nobody can mark it.</dd>
+      <dt><kbd>Left-drag</kbd></dt><dd>Without the ball: tackle. Press, pull back and let go, and you launch yourself the other way. Like a kick, the red area shows where you could land: the further you pull, the further you fly (up to 16&nbsp;m) and the wider it gets. A long dive has to be wound up: it takes a full second of pulling to reach all the way, and the whole time you glow and they can see how far you could get. Long dives are slower in the air too, so they give the carrier more time to dodge. You're in the air on the way, so only where you land counts. A quick click without a pull takes over the teammate nearest the pointer instead.</dd>
+      <dt><kbd>Right-click</kbd></dt><dd>Handball, the same way. It only goes 35&nbsp;m, but it's quick and flat: there before a kick would be, though anyone in its path can pick it off, and nobody can mark it. Catch one from a teammate and you get 5 seconds of the mark's slow motion to draw the next run, inside a smaller circle: nobody can tackle you in it, and when the 5 seconds are up the circle goes and it's play on.</dd>
       <dt><kbd>Click</kbd></dt><dd>Take over the teammate nearest the pointer (they're ringed) whenever you don't have the ball. Run under it to catch it.</dd>
       <dt><kbd>&larr;</kbd><kbd>&rarr;</kbd></dt><dd>Switch between your players near the ball and near where it's coming down, left to right. Every kick puts you on the one nearest where it's coming down to start with.</dd>
       <dt><kbd>Q</kbd></dt><dd>Take over the teammate closest to where the ball is coming down</dd>
-      <dt><kbd>Space</kbd></dt><dd>Tap to jump: for the mark when the ball's dropping near you, and from right behind someone you climb them for a specky. A jump also clears a ground slam. Hold to wind up a diving tackle straight away, and let go to dive. The dive knocks down any opponent it hits, ball or not, and dive through the ball to take it, however high it is.</dd>
+      <dt><kbd>Space</kbd></dt><dd>With the ball: dodge. You sidestep about 5&nbsp;m the instant you press it, the way you're running (or sideways away from them if you're not holding a direction), and nobody can tackle you mid-dodge. Watch for the red glow and the red landing area, and go before the dive lands. Without the ball: tap to jump: for the mark when the ball's dropping near you, and from right behind someone you climb them for a specky. A jump also clears a ground slam. Hold to wind up a diving tackle straight away, and let go to dive. The dive knocks down any opponent it hits, ball or not, and dive through the ball to take it, however high it is.</dd>
       <dt><kbd>Shift</kbd></dt><dd>Tap to charge: a burst forward nobody can tackle. Hit an opponent and you stop dead while they go down and fly off with your speed, ball or not. Hold to sprint (it uses the bar under your player); sprint into an opponent who hasn't got the ball and you knock them out of the way. That's also how you push someone off the spot in a marking contest.</dd>
-      <dt><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><kbd>5</kbd></dt><dd>Power-ups: perfect kick, guaranteed mark, Gigaplayer, Zone Pass, ground slam. Press the number or click it in the bar at the bottom. Each one recharges after you use it.</dd>
+      <dt><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><kbd>5</kbd></dt><dd>Use a power-up you're carrying: perfect kick, guaranteed mark, Gigaplayer, Zone Pass, ground slam. Press the number or click it in the bar at the bottom. They lie around the ground: run through one while you've got the ball and your side carries it, up to 4 at once. With 4 already, they stay on the ground (dimmed) until you use one. A new one turns up somewhere else 15 seconds after one's picked up.</dd>
       <dt><kbd>Wheel</kbd></dt><dd>Zoom</dd>
       <dt><kbd>P</kbd></dt><dd>Pause</dd>
     </dl>
     <p class="rule">Take a mark or get a free kick and you get 10 seconds of slow motion to draw runs: drag from a teammate to where they should go. They're off the moment you let go, and hold the spot at the end. Take one over mid-run and they keep to the line until you steer. Carry the ball over a play token and the game freezes for 5 seconds to do the same.</p>
     <p class="rule">Whenever the ball's out of play (before a bounce, after a score, for a throw-in or a free kick) drag your players to where you want them. The restart waits while you're holding someone.</p>
     <p class="rule">Nobody crosses the bright walls except with a Zone Pass. Shove, knock or climb someone from behind while the ball's in the air and it's a free kick against you, so time your specky.</p>
-    <p class="rule">Opponents glow red before they dive at you. When the ring closes in on them, charge out of the way, or sprint into them before they go.</p>
+    <p class="rule">Opponents glow red before they dive at you. When the ring closes in on them, press Space to dodge, or sprint into them before they go. Against your friend, the dashed red circle round them is as far as their dive could reach right now, and once they're in the air you see where they're coming down.</p>
     <p class="rule">Catch a kick of 15&nbsp;m or more before it bounces and it's a mark: nobody can tackle, knock, charge or slam you until you kick or run more than 5&nbsp;m off the spot. The slow motion ends the moment the call changes: you play on, or the ball goes the other way. Get caught holding the ball too long and it's a free kick to them.</p>
   </div>
 </div>
@@ -207,8 +208,11 @@ const HAND = { min: 3, max: 35, sL: [0.35, 3.2], sT: [0.25, 2.2], z0: 1.0 };   /
 const FULL_DRAG = 230;                            // px of pull for full power
 const QUARTER = 300;
 // power moves. spd in m/s, times in seconds
-const DIVE = { charge: 0.2, dur: 0.38, down: 0.65, reach: 0.8 };  // your tackle: pull with the mouse or hold Space (reach: extra metres it grabs)
-const TACKLE = { min: 3, max: 10, sL: [0.25, 2.0], sT: [0.2, 1.4] };  // metres, and the landing spread along / across, like KICK
+// your tackle: pull with the mouse or hold Space. charge: seconds of wind-up for the longest dive, so a long one shows coming;
+// air: seconds in the air = air[0] + air[1] per metre, so a long one gives the carrier time to get out of the way; reach: extra metres it grabs
+const DIVE = { charge: 1.0, air: [0.3, 0.026], down: 0.65, reach: 0.8 };
+const TACKLE = { min: 3, max: 16, sL: [0.25, 3.0], sT: [0.2, 2.0] };  // metres, and the landing spread along / across, like KICK
+const DODGE = { dur: 0.24, spd: 20 };              // Space with the ball: a sidestep the moment you press it (about 5 m)
 const LUNGE = { range: 4.6, windup: [0.55, 0.85], dur: 0.34, spd: 12.5, down: 0.75 }; // theirs
 const LEAP = { dur: 0.28, spd: 15, cd: 1.1, reach: 4.5, fly: 0.5 };   // a sidestep, and the base for your charge
 const CHARGE = { dur: 0.4, spd: 21 };             // your Shift tap: twice as far as a sidestep (about 8 m)
@@ -220,21 +224,24 @@ const GATHER = 10;                                // metres from where a kick co
 const WALL = A / 3;
 const ZONES = [[-Infinity, -WALL], [-WALL, WALL], [WALL, Infinity]];
 const zoneAt = x => (x < -WALL ? 0 : x > WALL ? 2 : 1);
-const PLAN = { markSecs: 10, markSpeed: 0.25, tokenSecs: 5, maxRuns: 4 };    // drawing plays
+// drawing plays. Catch a teammate's handball: 5 s, a smaller circle, and it's play on when they're up
+const PLAN = { markSecs: 10, markSpeed: 0.25, tokenSecs: 5, hbSecs: 5, maxRuns: 4, markR: 5.5, hbR: 3 };
 const TOKEN = { n: 4, r: 1.8, respawn: 20 };                                 // play tokens on the ground
 const JUMP = { dur: 0.6, boost: 1.3, specky: 2.8, climb: 2.8 };             // jumping for a mark (metres of extra reach)
 const SHOVE = { range: 2.6, cd: 1.2, kick: 7 };
-const POWERS = [                                       // keys 1-5; cd = seconds to recharge
-  { key: 'perfect', name: 'Perfect kick', cd: 30, arm: 15, tip: 'Your next kick lands exactly where you aim.' },
-  { key: 'sure', name: 'Guaranteed mark', cd: 35, arm: 12, tip: "Your side's next catch can't be beaten or shoved off." },
-  { key: 'giant', name: 'Gigaplayer', cd: 40, dur: 6, tip: "Double size for 6 seconds: can't be tackled, and flattens anyone you run into." },
-  { key: 'zone', name: 'Zone Pass', cd: 35, dur: 8, tip: 'Walk through the walls for 8 seconds. Get home before it runs out.' },
-  { key: 'slam', name: 'Ground slam', cd: 20, tip: 'Leap up and slam the ground: every opponent close by is thrown clear, and whoever has the ball drops it. Jump and it misses you.' },
+const POWERS = [                                       // keys 1-5; picked up off the ground, used from the bar
+  { key: 'perfect', name: 'Perfect kick', col: [111, 211, 255], arm: 15, tip: 'Your next kick lands exactly where you aim.' },
+  { key: 'sure', name: 'Guaranteed mark', col: [125, 240, 154], arm: 12, tip: "Your side's next catch can't be beaten or shoved off." },
+  { key: 'giant', name: 'Gigaplayer', col: [197, 155, 255], dur: 6, tip: "Double size for 6 seconds: can't be tackled, and flattens anyone you run into." },
+  { key: 'zone', name: 'Zone Pass', col: [242, 242, 242], dur: 8, tip: 'Walk through the walls for 8 seconds. Get home before it runs out.' },
+  { key: 'slam', name: 'Ground slam', col: [255, 127, 200], tip: 'Leap up and slam the ground: every opponent close by is thrown clear, and whoever has the ball drops it. Jump and it misses you.' },
 ];
+const PICKUP = { n: 6, r: 1.6, respawn: 15, bag: 4 };   // power-ups on the ground: run through one with the ball; bag = the most a side carries
 const SLAM = { rise: 0.35, r: 7, spd: [19, 8], down: 1.0, fly: 0.35 };  // up for rise seconds, then everyone within r metres flies
 const noArms = () => ({ perfect: 0, sure: 0 });
 const PW = Object.fromEntries(POWERS.map((P, n) => [P.key, n]));   // a power's slot, by name
-const noCds = () => POWERS.map(() => 0);
+const noHave = () => POWERS.map(() => 0);           // how many of each power a side is carrying
+const carried = t => game.have[t].reduce((a, b) => a + b, 0);
 const HOME = 0, AWAY = 1;
 const AMBER = [255, 207, 51];
 const HOT = [255, 84, 40];
@@ -286,9 +293,9 @@ const ball = {
 };
 const game = {
   g: [0, 0], b: [0, 0], q: 1, clock: QUARTER, throwAt: null, fk: null, kickInEnd: 1, t: 0,
-  cd: [noCds(), noCds()],                             // power-up cooldowns per side
+  have: [noHave(), noHave()],                         // power-ups each side is carrying, by kind
   arm: [noArms(), noArms()],                          // power-ups switched on and waiting for their moment
-  tokens: [], slowmo: 0, aiPw: 0,
+  tokens: [], pickups: [], slowmo: 0, aiPw: 0,
 };
 const stats = {};
 const bump = k => { stats[k] = (stats[k] || 0) + 1; };
@@ -383,7 +390,7 @@ const powersEl = document.getElementById('powers');
 const planEl = document.getElementById('plan');
 const planTitle = document.getElementById('planTitle'), planHint = document.getElementById('planHint'), planBar = document.getElementById('planBar');
 powersEl.innerHTML = POWERS.map((Pw, n) =>
-  `<button type="button" class="pw" tabindex="-1" title="${Pw.name} (${n + 1}): ${Pw.tip} Recharges in ${Pw.cd} seconds."><i></i><kbd>${n + 1}</kbd><span>${Pw.name}</span><b></b></button>`).join('');
+  `<button type="button" class="pw" tabindex="-1" style="--pc:${rgba(Pw.col, 1)}" title="${Pw.name} (${n + 1}): ${Pw.tip} Pick them up by running through them on the ground with the ball."><i></i><kbd>${n + 1}</kbd><span>${Pw.name}</span><b></b></button>`).join('');
 const pwEls = [...powersEl.children].map(el => ({ el, shade: el.querySelector('i'), secs: el.querySelector('b') }));
 pwEls.forEach((w, n) => {
   w.el.addEventListener('pointerdown', e => e.preventDefault());   // don't take focus: Space and Shift stay with the game
@@ -392,20 +399,20 @@ pwEls.forEach((w, n) => {
 function updPowersHud() {
   powersEl.hidden = !running;
   pwEls.forEach((w, n) => {
-    const Pw = POWERS[n], cd = game.cd[me][n];
+    const Pw = POWERS[n], got = game.have[me][n];
     const on = Pw.arm ? game.arm[me][Pw.key] > 0 : !!human && (Pw.key === 'giant' ? human.giantT > 0 : Pw.key === 'zone' ? human.zoneT > 0 : human.slamT > 0);
     w.el.classList.toggle('on', on);
-    w.el.classList.toggle('cool', cd > 0);
-    const h = `${Math.round(cd / Pw.cd * 100)}%`;
+    w.el.classList.toggle('cool', got <= 0);
+    const h = got > 0 || on ? '0%' : '100%';
     if (w.shade.style.height !== h) w.shade.style.height = h;
-    setText(w.secs, cd > 0 ? String(Math.ceil(cd)) : '');
+    setText(w.secs, '\u25cf'.repeat(got));          // a dot for each one carried
   });
 }
 function updPlanHud() {
   planEl.hidden = !plan || !running;
   if (!plan) return;
-  const mine = plan.team === me, total = plan.kind === 'mark' ? PLAN.markSecs : PLAN.tokenSecs;
-  setText(planTitle, !mine ? 'YOUR FRIEND IS DRAWING A PLAY' : plan.kind === 'token' ? 'PLAY TOKEN: TIME IS FROZEN' : 'DRAW A PLAY');
+  const mine = plan.team === me, total = planSecs(plan.kind);
+  setText(planTitle, !mine ? 'YOUR FRIEND IS DRAWING A PLAY' : plan.kind === 'token' ? 'PLAY TOKEN: TIME IS FROZEN' : plan.kind === 'hb' ? 'HANDBALL: LINE UP THE NEXT ONE' : 'DRAW A PLAY');
   setText(planHint, !mine ? '' : plan.kind === 'token'
     ? 'Drag from a teammate to draw their run. They go when time starts again.'
     : 'Drag from a teammate to draw their run; right-click them to clear it. They go as soon as you let go.');
@@ -515,8 +522,8 @@ function phaseDone() {
 
 // ---------------------------------------------------------------- possession
 function give(p, o = {}) {
-  const prot = !!(o.mark || o.free || o.kickin);
-  Object.assign(ball, { holder: p, state: 'held', frozen: false, vx: 0, vy: 0, vz: 0, protected: prot, markX: p.x, markY: p.y });
+  const prot = !!(o.mark || o.free || o.kickin || o.hb);
+  Object.assign(ball, { holder: p, state: 'held', frozen: false, vx: 0, vy: 0, vz: 0, protected: prot, markX: p.x, markY: p.y, markR: o.hb ? PLAN.hbR : PLAN.markR });
   ball.attempted = new Set(); ball.exclude = [];
   p.holdTime = 0; p.grace = prot ? 0 : 0.6;
   p.think = prot ? rand(1.1, 2.2) : rand(0.5, 1.7);
@@ -561,7 +568,7 @@ function dispose(p, dx, dy, power, type) {
   manOnMark = null;
   ball.field = { ...f, team: p.team, person: controlled(p) ? p.team : -1 };   // person: which side's person kicked it
   ball.fieldA = 1;
-  if (controlled(p) && plan && plan.kind === 'mark' && plan.team === p.team) endPlan();   // kicking ends the drawing time
+  if (controlled(p) && plan && plan.kind !== 'token' && plan.team === p.team) endPlan();   // kicking ends the drawing time
 }
 const excluded = p => ball.exclude.some(e => e[0] === p);
 
@@ -575,7 +582,8 @@ function resolveBall() {
       if (ball.z > reachOf(p)) continue;
       const r = CATCH_R * (p.giantT > 0 ? 1.6 : 1) * (game.arm[p.team].sure > 0 ? 1.4 : 1);
       const d = hyp(p.x - ball.x, p.y - ball.y);
-      if (d < r) cands.push([d, p]);
+      const cut = ball.kickType === 'hb' && ball.kickTeam !== p.team ? 0.6 : 0;   // a handball: the other side can cut it off
+      if (d < r + cut) cands.push([d, p]);
     }
     if (!cands.length) return;
     // first call: a guaranteed mark, then someone up on a back for a specky, then a Gigaplayer, then whoever's closest
@@ -616,8 +624,10 @@ function resolveBall() {
 function catchBy(p, mark) {
   bump(mark ? 'mark' : 'catch');
   const specky = p.jumpT > 0 && p.climb;
+  const hbChain = ball.state === 'air' && ball.kickType === 'hb' && ball.kickTeam === p.team && active[p.team];
   if (p.jumpT > 0) p.caught = true;
-  give(p, { mark });
+  give(p, { mark, hb: hbChain && !mark });
+  if (hbChain) { bump('hbChain'); startPlan('hb', p.team); }
   if (specky) { banner('SPECKY!', rgba(AMBER, 1), 1.6); game.slowmo = 0.7; bump('specky'); }
   else if (mark) banner('MARK', '#ffffff', 1.0);
   if (mark && active[p.team]) startPlan('mark', p.team);
@@ -682,14 +692,24 @@ function tackleZone() {
   if (human.charge <= 0 || ball.holder === human) return null;
   const ti = tack && tack.moved ? tackleInfo(tack) : null;   // pulling with the mouse: that way, that far
   const [dx, dy] = ti ? [ti.dx, ti.dy] : moveDir(human);
-  return tackleField(human.x, human.y, dx, dy, ti ? ti.power : human.charge);
+  return tackleField(human.x, human.y, dx, dy, ti ? Math.min(ti.power, human.charge) : human.charge);
+}
+// the other person's dive in the air: where it's landing, so you can get out of the way
+function theirZone() {
+  const t = 1 - me;
+  if (net.mode === 'guest') {
+    const z = net.lz[t];
+    return z ? { x: z[0], y: z[1], dx: z[2], dy: z[3], sL: z[4], sT: z[5] } : null;
+  }
+  const c = ctrl[t];
+  return active[t] && c && c.lunge && c.lunge.air ? c.lunge.field : null;
 }
 function tackleInfo(t) {
   const dx = t.sx - mouse.x, dy = t.sy - mouse.y, len = hyp(dx, dy);
   return len < 12 ? null : { dx: dx / len, dy: dy / len, power: clamp(len / FULL_DRAG, 0.05, 1) };
 }
 function startLunge(p, dx, dy, spd, dur, downT) {
-  p.lunge = { t: 0, dur, dx, dy, spd, downT };
+  p.lunge = { t: 0, dur, dx, dy, spd, downT, at: performance.now(), dodged: 0 };   // dodged: how quick the carrier got out of the way
   p.charge = 0;
   const h = ball.holder;                              // a computer ball carrier sometimes sees it coming
   if (h && !controlled(h) && h.team !== p.team && h.leapCd <= 0 && canAct(h) &&
@@ -709,7 +729,7 @@ function releaseDive(team, power) {                  // power: from a mouse pull
   const p = ctrl[team];
   pad[team].space = false;
   if (!p || p.charge <= 0) return;
-  const c = power !== undefined ? power : p.charge;
+  const c = power !== undefined ? Math.min(power, p.charge) : p.charge;   // a long pull still has to be wound up
   p.charge = 0;
   if (!canAct(p) || ball.holder === p) return;
   bump('dive');
@@ -717,8 +737,8 @@ function releaseDive(team, power) {                  // power: from a mouse pull
   const f = tackleField(p.x, p.y, dx, dy, c);          // where it's aimed, and how far it could stray
   const g1 = clamp(gauss(), -2.5, 2.5), g2 = clamp(gauss(), -2.5, 2.5);
   const lx = f.x + dx * g1 * f.sL - dy * g2 * f.sT, ly = f.y + dy * g1 * f.sL + dx * g2 * f.sT;
-  const d = hyp(lx - p.x, ly - p.y) || 0.1;
-  startLunge(p, (lx - p.x) / d, (ly - p.y) / d, d / DIVE.dur, DIVE.dur, DIVE.down);
+  const d = hyp(lx - p.x, ly - p.y) || 0.1, T = DIVE.air[0] + DIVE.air[1] * d;
+  startLunge(p, (lx - p.x) / d, (ly - p.y) / d, d / T, T, DIVE.down);
   Object.assign(p.lunge, { reach: DIVE.reach, air: true, field: f });   // in the air: only the landing counts
 }
 // a diving tackle lands like a kick: aimed at a spot, straying further the harder you go
@@ -753,12 +773,41 @@ function diveContact(p, L) {
 }
 function startLeap(p, dx, dy, dur = LEAP.dur, spd = LEAP.spd) {
   bump('leap');
-  p.leapT = dur; p.leapDur = dur; p.leapSpd = spd; p.leapDx = dx; p.leapDy = dy; p.leapCd = LEAP.cd; p.charge = 0;
+  p.leapT = dur; p.leapDur = dur; p.leapSpd = spd; p.leapDx = dx; p.leapDy = dy; p.leapCd = LEAP.cd; p.charge = 0; p.dodge = false;
 }
 function tryLeap(p) {
   if (!p || !canAct(p) || p.leapCd > 0 || p.giantT > 0) return;
   const [dx, dy] = moveDir(p);
   startLeap(p, dx, dy, CHARGE.dur, CHARGE.spd);
+}
+// Space with the ball: out of the way the moment it's pressed. The way you're holding, or with nothing held,
+// sideways away from whoever's coming. Nobody can tackle you while you're in it
+function tryDodge(p) {
+  if (!p || ball.holder !== p || !canAct(p) || p.leapCd > 0 || p.giantT > 0) return;
+  let [dx, dy] = inputDir(p) || [0, 0];
+  let th = null, td = Infinity;
+  for (const o of players) {
+    if (o.team === p.team || !(o.lunge || o.charge > 0)) continue;
+    const d = hyp(o.x - p.x, o.y - p.y);
+    if (d < td) { td = d; th = o; }
+  }
+  if (!dx && !dy) {
+    dx = -p.fy; dy = p.fx;
+    if (th) {
+      const tx = th.lunge && th.lunge.field ? th.lunge.field.x : th.x, ty = th.lunge && th.lunge.field ? th.lunge.field.y : th.y;
+      if (dx * (p.x - tx) + dy * (p.y - ty) < 0) { dx = -dx; dy = -dy; }
+    }
+  }
+  startLeap(p, dx, dy, DODGE.dur, DODGE.spd);
+  p.dodge = true;
+  bump('dodge');
+  const now = performance.now();                      // a dive already coming: note how quick you were
+  for (const o of players) if (o.team !== p.team && o.lunge && o.lunge.at && hyp(o.x - p.x, o.y - p.y) < 22) o.lunge.dodged = (now - o.lunge.at) / 1000;
+}
+function dodgedIt(L) {
+  if (!L.dodged) return;
+  bump('dodged');
+  banner(`DODGED IN ${L.dodged.toFixed(2)} s`, '#ffffff', 1.3);
 }
 // dives, leaps and lying on the deck take over from normal running
 function moveSpecial(p, dt) {
@@ -782,11 +831,11 @@ function moveSpecial(p, dt) {
       return true;
     }
     if (L.air) {                                      // your dive: flying over everyone, it only counts where it lands
-      if (L.t >= L.dur) { p.lunge = null; p.vx *= 0.2; p.vy *= 0.2; if (!diveContact(p, L)) { p.down = L.downT; bump('diveMiss'); } }
+      if (L.t >= L.dur) { p.lunge = null; p.vx *= 0.2; p.vy *= 0.2; if (!diveContact(p, L)) { p.down = L.downT; bump('diveMiss'); dodgedIt(L); } }
       return true;
     }
     if (diveContact(p, L)) return true;
-    if (L.t >= L.dur) { p.lunge = null; p.down = L.downT; }
+    if (L.t >= L.dur) { p.lunge = null; p.down = L.downT; dodgedIt(L); }
     return true;
   }
   if (p.leapT > 0) {
@@ -795,7 +844,7 @@ function moveSpecial(p, dt) {
     p.vx = p.leapDx * ls; p.vy = p.leapDy * ls;
     p.x += p.vx * dt; p.y += p.vy * dt;
     p.trail.push([p.x, p.y, 0.22]);
-    if (controlled(p)) {                              // a person's charge: the first opponent in front takes all of it
+    if (controlled(p) && !p.dodge) {                  // a person's charge: the first opponent in front takes all of it
       for (const v of players) {
         if (v.team === p.team || v.down > 0 || v.leapT > 0 || v.slamT > 0 || v.climb === p) continue;
         const ox = v.x - p.x, oy = v.y - p.y, d = hyp(ox, oy) || 0.01;
@@ -834,11 +883,19 @@ function moveSpecial(p, dt) {
 function playOnCheck() {
   const h = ball.holder;
   if (!h || !ball.protected) return;
-  if (hyp(h.x - ball.markX, h.y - ball.markY) > 5.5) {
-    ball.protected = false; manOnMark = null; h.holdTime = 1.6; h.grace = 0;
-    banner('PLAY ON', '#ffffff', 0.9);
-    if (controlled(h) && plan && plan.kind === 'mark' && plan.team === h.team) endPlan();
-  }
+  if (hyp(h.x - ball.markX, h.y - ball.markY) > ball.markR) playOn(h);
+}
+function playOn(h) {
+  ball.protected = false; manOnMark = null; h.holdTime = 1.6; h.grace = 0;
+  banner('PLAY ON', '#ffffff', 0.9);
+  if (controlled(h) && plan && plan.kind !== 'token' && plan.team === h.team) endPlan();
+}
+// a handball catch's 5 s are up: the circle goes and it's play on
+function planOver() {
+  const was = plan;
+  endPlan();
+  const h = ball.holder;
+  if (was && was.kind === 'hb' && h && h.team === was.team && ball.protected) playOn(h);
 }
 // put a player down where you dropped them. They stay there until the ball's back in play,
 // and while you're holding someone the restart waits for you
@@ -860,10 +917,11 @@ function checkOut() {
 
 // ---------------------------------------------------------------- plays
 // After a mark, or carrying the ball over a play token, you draw runs for teammates.
-let plan = null;                                      // { kind: 'mark' | 'token', team, left: seconds }
+let plan = null;                                      // { kind: 'mark' | 'hb' | 'token', team, left: seconds }
+const planSecs = kind => (kind === 'mark' ? PLAN.markSecs : kind === 'hb' ? PLAN.hbSecs : PLAN.tokenSecs);
 function startPlan(kind, team) {
   if (plan || !active[team] || phase !== 'play') return;
-  plan = { kind, team, left: kind === 'mark' ? PLAN.markSecs : PLAN.tokenSecs };
+  plan = { kind, team, left: planSecs(kind) };
   for (const p of players) if (p.team === team) p.route = null;   // a clean whiteboard
   bump('plan_' + kind);
 }
@@ -872,6 +930,7 @@ function endPlan() { plan = null; runHold[0] = runHold[1] = -1; }
 // tops the clock back up; a call the other way ends yours
 function freeKickCall(p) {
   if (plan && plan.kind === 'mark' && plan.team === p.team) { plan.left = PLAN.markSecs; return; }
+  if (plan && plan.kind === 'hb') endPlan();
   if (plan) endPlan();
   startPlan('mark', p.team);
 }
@@ -938,6 +997,31 @@ function spawnToken(tk, k) {
   }
   return tk;
 }
+// a power-up on the ground: somewhere in its third, clear of the play tokens and the other power-ups
+function spawnPickup(pk, k) {
+  const z = k % 3, z0 = Math.max(ZONES[z][0], -A + 20), z1 = Math.min(ZONES[z][1], A - 20);
+  pk.wait = 0; pk.n = Math.floor(Math.random() * POWERS.length); pk.x = (z0 + z1) / 2; pk.y = 0;
+  for (let tries = 0; tries < 40; tries++) {
+    const x = rand(z0 + 6, z1 - 6), y = rand(-B * 0.75, B * 0.75);
+    if (ellK(x, y) > 0.78) continue;
+    if ([...game.tokens, ...game.pickups].some(q => q !== pk && q.x !== undefined && hyp(q.x - x, q.y - y) < 8)) continue;
+    pk.x = x; pk.y = y; break;
+  }
+  return pk;
+}
+// whoever has the ball picks up any power-up they run through, while their side has room for it
+function pickupCheck() {
+  const h = ball.holder;
+  if (!h || phase !== 'play') return;
+  for (const pk of game.pickups) {
+    if (pk.wait > 0 || hyp(pk.x - h.x, pk.y - h.y) > PICKUP.r + PR) continue;
+    if (carried(h.team) >= PICKUP.bag) return;           // full: it stays where it is
+    game.have[h.team][pk.n]++;
+    pk.wait = PICKUP.respawn;
+    bump('pickup');
+    banner(`+ ${POWERS[pk.n].name.toUpperCase()}`, rgba(POWERS[pk.n].col, 1), 1.0);
+  }
+}
 function tokenCheck() {
   if (plan || phase !== 'play') return;
   for (const c of ctrl) {
@@ -952,26 +1036,27 @@ function tokenCheck() {
   }
 }
 
-// ---------------------------------------------------------------- power-ups (keys 1-5, each on its own recharge)
+// ---------------------------------------------------------------- power-ups (keys 1-5: whatever your side has picked up)
 function usePower(team, n, p = ctrl[team]) {
   const Pw = POWERS[n];
-  if (!Pw || game.cd[team][n] > 0 || phase !== 'play') return false;
+  if (!Pw || game.have[team][n] <= 0 || phase !== 'play') return false;
   if ((Pw.key === 'giant' || Pw.key === 'zone' || Pw.key === 'slam') && !p) return false;
   if (Pw.key === 'slam' && !canAct(p)) return false;
   if (Pw.key === 'giant') { p.giantT = Pw.dur; p.leapT = 0; p.jumpT = 0; p.climb = null; }
   else if (Pw.key === 'zone') { p.zoneT = Pw.dur; p.outX = null; }
   else if (Pw.key === 'slam') { p.slamT = SLAM.rise; p.charge = 0; }
   else game.arm[team][Pw.key] = Pw.arm;
-  game.cd[team][n] = Pw.cd;
+  game.have[team][n]--;
   bump('power_' + Pw.key);
   banner(Pw.name.toUpperCase(), rgba(TEAM[team].light, 1), 1.1);
   return true;
 }
 // slowed while heading home after a Zone Pass ran out; a Gigaplayer is a touch slower
 const moveMul = p => (p.outX !== null ? 0.5 : 1) * (p.giantT > 0 ? 0.95 : 1);
-// the computer's side has the same five, and uses them when they'd help
+// the computer's side picks them up the same way, and uses them when they'd help
 function aiPowers(t) {
-  const cd = game.cd[t], arm = game.arm[t], h = ball.holder, att = attDir(t);
+  const arm = game.arm[t], h = ball.holder, att = attDir(t);
+  const cd = game.have[t].map(g => (g > 0 ? 0 : 1));   // 0: they've got one
   const foesNear = (q, r) => players.filter(o => o.team !== q.team && o.down <= 0 && hyp(o.x - q.x, o.y - q.y) < r).length;
   if (h && h.team === t && !ball.protected) {
     if (cd[PW.giant] <= 0 && foesNear(h, 7) >= 2 && Math.random() < 0.35) { usePower(t, PW.giant, h); return; }
@@ -1407,7 +1492,7 @@ function keepInside() {
 function update(dt) {
   game.t += dt;
   // the slow motion lasts only while its call stands: that side still has the ball on its mark or free kick
-  if (plan && plan.kind === 'mark' && !(ball.holder && ball.holder.team === plan.team && ball.protected)) endPlan();
+  if (plan && plan.kind !== 'token' && !(ball.holder && ball.holder.team === plan.team && ball.protected)) endPlan();
   if (net.mode !== 'guest') { const [x, y] = readKeys(); Object.assign(pad[me], { x, y, space: tackleHeld(), sprint: boostHeld(), fx: null, fy: null }); }
   if (phase === 'play') { game.clock -= dt; if (game.clock <= 0) { game.clock = 0; endQuarter(); } }
   if (phaseT > 0) {
@@ -1456,7 +1541,7 @@ function update(dt) {
   updateBall(dt);
   if (phase === 'play') {
     checkOut();
-    if (phase === 'play') { resolveBall(); tackles(dt); playOnCheck(); aiContest(dt); tokenCheck(); }
+    if (phase === 'play') { resolveBall(); tackles(dt); playOnCheck(); aiContest(dt); tokenCheck(); pickupCheck(); }
   }
   if (ball.fieldA > 0 && ball.state !== 'air') ball.fieldA = Math.max(0, ball.fieldA - dt * 1.5);
   for (const p of players) {
@@ -1464,10 +1549,10 @@ function update(dt) {
       p.lunge && p.lunge.air ? 1.3 * Math.sin(Math.PI * Math.min(1, p.lunge.t / p.lunge.dur)) : 0);   // a diving tackle arcs
   }
   for (const t of [HOME, AWAY]) {
-    for (let n = 0; n < POWERS.length; n++) if (game.cd[t][n] > 0) game.cd[t][n] = Math.max(0, game.cd[t][n] - dt);
     for (const k in game.arm[t]) if (game.arm[t][k] > 0) game.arm[t][k] = Math.max(0, game.arm[t][k] - dt);
   }
   game.tokens.forEach((tk, k) => { if (tk.wait > 0 && (tk.wait -= dt) <= 0) spawnToken(tk, k); });
+  game.pickups.forEach((pk, k) => { if (pk.wait > 0 && (pk.wait -= dt) <= 0) spawnPickup(pk, k); });
   if ((game.aiPw -= dt) <= 0) {
     game.aiPw = 0.25;
     if (phase === 'play') for (const t of [HOME, AWAY]) if (!active[t]) aiPowers(t);
@@ -1657,7 +1742,10 @@ window.addEventListener('keydown', e => {
   if (e.code === 'KeyQ') takeNearest();
   if (e.code === 'ArrowRight') cycleNear(1);
   if (e.code === 'ArrowLeft') cycleNear(-1);
-  if (e.code === 'Space') spaceAt = performance.now();   // winds up a tackle from the press; a quick tap jumps instead
+  if (e.code === 'Space') {
+    if (human && ball.holder === human && phase === 'play') { const [x, y] = readKeys(); act({ a: 'dodge', x, y }); }   // with the ball: dodge, right now
+    else spaceAt = performance.now();                // without: winds up a tackle from the press; a quick tap jumps instead
+  }
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') shiftAt = performance.now();   // held: sprint; a quick tap: charge
   if (/^Digit[1-9]$/.test(e.code) && running && !paused) act({ a: 'power', n: Number(e.code.slice(5)) - 1 });
   if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
@@ -1762,8 +1850,10 @@ function newGame() {
   game.g = [0, 0]; game.b = [0, 0]; game.q = 1; game.clock = QUARTER;
   ctrl[0] = ctrl[1] = null; human = null;
   pad[0] = blankPad(); pad[1] = blankPad();
-  game.cd = [noCds(), noCds()]; game.arm = [noArms(), noArms()]; game.slowmo = 0;
+  game.have = [noHave(), noHave()]; game.arm = [noArms(), noArms()]; game.slowmo = 0;
   game.tokens = Array.from({ length: TOKEN.n }, (_, k) => spawnToken({}, k));
+  game.pickups = [];
+  for (let k = 0; k < PICKUP.n; k++) game.pickups.push(spawnPickup({}, k));
   net.routes.clear(); drawing = null; runHold[0] = runHold[1] = -1;
   initPlayers(); setupBounce();
   cam.x = 0; cam.y = 0; cam.s = baseScale();
@@ -1937,10 +2027,11 @@ function applyAction(team, m) {
     if (p && p.team === team && ball.holder !== c) setHuman(p);
   } else if (m.a === 'nearest') {
     if (ball.holder !== c) setHuman(nearestInZone(team, focus.x, focus.y, false));
-  } else if (m.a === 'leap' || m.a === 'dive' || m.a === 'jump') {
+  } else if (m.a === 'leap' || m.a === 'dive' || m.a === 'jump' || m.a === 'dodge') {
     const x = Number(m.x), y = Number(m.y);          // the direction held when they pressed it
     if (Number.isFinite(x) && Number.isFinite(y) && hyp(x, y) <= 1.01) { pad[team].x = x; pad[team].y = y; }
     if (m.a === 'leap') tryLeap(c);
+    else if (m.a === 'dodge') tryDodge(c);
     else if (m.a === 'dive') releaseDive(team, Number.isFinite(Number(m.power)) ? clamp(Number(m.power), 0.05, 1) : undefined);
     else startJump(c);
   } else if (m.a === 'power') { const n = Number(m.n); if (n >= 0 && n < POWERS.length) usePower(team, n); }
@@ -1964,15 +2055,16 @@ function snapshot() {
   const b = ball, f = b.field;
   return {
     t: 's', P,
-    b: [r2(b.x), r2(b.y), r2(b.z), r1(b.vx), r1(b.vy), r1(b.vz), b.holder ? b.holder.id : -1, b.protected ? 1 : 0, r1(b.markX), r1(b.markY)],
+    b: [r2(b.x), r2(b.y), r2(b.z), r1(b.vx), r1(b.vy), r1(b.vz), b.holder ? b.holder.id : -1, b.protected ? 1 : 0, r1(b.markX), r1(b.markY), r1(b.markR || PLAN.markR)],
     f: f && b.fieldA > 0 ? [r1(f.x), r1(f.y), r2(f.dx), r2(f.dy), r2(f.sL), r2(f.sT), f.team, f.person, r2(b.fieldA)] : null,
     g: [game.g[0], game.g[1], game.b[0], game.b[1], game.q, r1(game.clock)],
     ph: phase, pa: paused ? 1 : 0,
     c: [ctrl[0] ? ctrl[0].id : -1, ctrl[1] ? ctrl[1].id : -1],
     fo: [r1(focus.x), r1(focus.y)],
-    pw: [...game.cd[0], ...game.cd[1]].map(r1),
+    pw: [...game.have[0], ...game.have[1]],
+    pk: game.pickups.map(pk => [r1(pk.x), r1(pk.y), pk.n, pk.wait > 0 ? 0 : 1]),
     ar: [game.arm[0].perfect, game.arm[0].sure, game.arm[1].perfect, game.arm[1].sure].map(r1),
-    pl: plan ? [plan.kind === 'mark' ? 1 : 2, plan.team, r1(plan.left)] : null,
+    pl: plan ? [plan.kind === 'mark' ? 1 : plan.kind === 'token' ? 2 : 3, plan.team, r1(plan.left)] : null,
     tk: game.tokens.map(tk => [r1(tk.x), r1(tk.y), tk.wait > 0 ? 0 : 1]),
     ts: r2(simSpeed),
     lz: ctrl.map(c => {
@@ -2065,7 +2157,7 @@ function applySnapshot(s) {
   net.seeded = true;
   ball.vx = b[3]; ball.vy = b[4];
   ball.holder = b[6] >= 0 ? players[b[6]] || null : null;
-  ball.protected = !!b[7]; ball.markX = b[8]; ball.markY = b[9];
+  ball.protected = !!b[7]; ball.markX = b[8]; ball.markY = b[9]; ball.markR = Number.isFinite(b[10]) ? b[10] : PLAN.markR;
   if (s.f) {
     ball.field = { x: s.f[0], y: s.f[1], dx: s.f[2], dy: s.f[3], sL: s.f[4], sT: s.f[5], team: s.f[6], person: s.f[7] };
     ball.fieldA = s.f[8];
@@ -2077,12 +2169,13 @@ function applySnapshot(s) {
   human = ctrl[me];
   focus.x = s.fo[0]; focus.y = s.fo[1];
   const NPW = POWERS.length;
-  if (Array.isArray(s.pw) && s.pw.length === NPW * 2) { game.cd[0] = s.pw.slice(0, NPW); game.cd[1] = s.pw.slice(NPW); }
+  if (Array.isArray(s.pw) && s.pw.length === NPW * 2) { game.have[0] = s.pw.slice(0, NPW); game.have[1] = s.pw.slice(NPW); }
+  if (Array.isArray(s.pk)) game.pickups = s.pk.filter(q => Array.isArray(q) && POWERS[q[2]]).map(q => ({ x: q[0], y: q[1], n: q[2], wait: q[3] ? 0 : 1 }));
   if (Array.isArray(s.ar) && s.ar.length === 4) {
     game.arm[0] = { perfect: s.ar[0], sure: s.ar[1] };
     game.arm[1] = { perfect: s.ar[2], sure: s.ar[3] };
   }
-  plan = Array.isArray(s.pl) ? { kind: s.pl[0] === 1 ? 'mark' : 'token', team: s.pl[1], left: s.pl[2] } : null;
+  plan = Array.isArray(s.pl) ? { kind: s.pl[0] === 1 ? 'mark' : s.pl[0] === 2 ? 'token' : 'hb', team: s.pl[1], left: s.pl[2] } : null;
   if (Array.isArray(s.tk)) game.tokens = s.tk.map(q => ({ x: q[0], y: q[1], wait: q[2] ? 0 : 1 }));
   net.ts = Number.isFinite(s.ts) ? clamp(s.ts, 0, 1) : 1;
   net.lz = Array.isArray(s.lz) ? [0, 1].map(t => (Array.isArray(s.lz[t]) && s.lz[t].length === 6 && s.lz[t].every(Number.isFinite) ? s.lz[t] : null)) : [null, null];
@@ -2296,6 +2389,21 @@ function drawPlayer(p, S) {
     ctx.setLineDash([]);
   }
 }
+function drawPickups(S) {
+  const full = carried(me) >= PICKUP.bag;               // your side can't carry any more: they're dimmed for you
+  for (const pk of game.pickups) {
+    if (pk.wait > 0) continue;
+    const col = POWERS[pk.n].col, a = full ? 0.35 : 1, pulse = 0.5 + 0.5 * Math.sin(game.t * 5 + pk.y);
+    ctx.save();
+    ctx.translate(pk.x, pk.y); ctx.rotate(Math.PI / 4);
+    const r = PICKUP.r * 0.82;
+    ctx.fillStyle = rgba(col, (0.2 + 0.14 * pulse) * a);
+    ctx.fillRect(-r, -r, 2 * r, 2 * r);
+    ctx.strokeStyle = rgba(col, 0.95 * a); ctx.lineWidth = 2.2 / S;
+    ctx.strokeRect(-r, -r, 2 * r, 2 * r);
+    ctx.restore();
+  }
+}
 function drawTokens(S) {
   for (const tk of game.tokens) {
     if (tk.wait > 0) continue;
@@ -2378,7 +2486,7 @@ function drawMark(S) {
   if (!ball.holder || !ball.protected) return;
   ctx.save();
   ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.lineWidth = 1.4 / S; ctx.setLineDash([6 / S, 5 / S]);
-  ctx.beginPath(); ctx.arc(ball.markX, ball.markY, 5.5, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(ball.markX, ball.markY, ball.markR || PLAN.markR, 0, Math.PI * 2); ctx.stroke();
   ctx.setLineDash([]); ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 2 / S;
   ctx.beginPath(); ctx.moveTo(ball.markX - 0.9, ball.markY); ctx.lineTo(ball.markX + 0.9, ball.markY); ctx.stroke();
   ctx.restore();
@@ -2409,6 +2517,12 @@ function drawMinimap() {
   }
   ctx.fillStyle = rgba(AMBER, 0.9);
   for (const tk of game.tokens) if (tk.wait <= 0) ctx.fillRect(cx + tk.x * k - 2.5, cy + tk.y * k - 2.5, 5, 5);
+  for (const pk of game.pickups) {
+    if (pk.wait > 0) continue;
+    ctx.fillStyle = rgba(POWERS[pk.n].col, 0.95);
+    const x = cx + pk.x * k, y = cy + pk.y * k;
+    ctx.beginPath(); ctx.moveTo(x, y - 3.5); ctx.lineTo(x + 3.5, y); ctx.lineTo(x, y + 3.5); ctx.lineTo(x - 3.5, y); ctx.closePath(); ctx.fill();
+  }
   ctx.fillStyle = '#ffffff';
   ctx.beginPath(); ctx.arc(cx + ball.x * k, cy + ball.y * k, 2.4, 0, Math.PI * 2); ctx.fill();
   ctx.save();
@@ -2426,6 +2540,7 @@ function render() {
   drawGround(S);
   drawMark(S);
   drawTokens(S);
+  drawPickups(S);
   if (ball.field && ball.fieldA > 0) drawSpread(ball.field, 0.75 * ball.fieldA, ball.field.person === me ? AMBER : TEAM[ball.field.team].light, S);
   const tz = tackleZone();                            // where your tackle could land, while you line it up and while you fly
   if (tz) {
@@ -2434,6 +2549,14 @@ function render() {
       ctx.save(); ctx.strokeStyle = rgba(HOT, 0.75); ctx.lineWidth = 1.6 / S; ctx.setLineDash([7 / S, 6 / S]);
       ctx.beginPath(); ctx.moveTo(human.x, human.y); ctx.lineTo(tz.x, tz.y); ctx.stroke(); ctx.restore();
     }
+  }
+  const zz = theirZone();                             // the other person's dive coming down
+  if (zz) drawSpread(zz, 0.8, HOT, S);
+  const them = active[1 - me] ? ctrl[1 - me] : null;
+  if (them && them.charge > 0 && !them.lunge && ball.holder !== them) {   // winding up: as far as their dive could reach right now
+    const R = lerp(TACKLE.min, TACKLE.max, them.charge) + PR * 2 + 0.35 + DIVE.reach;
+    ctx.save(); ctx.strokeStyle = rgba(HOT, 0.35 + 0.4 * them.charge); ctx.lineWidth = 1.6 / S; ctx.setLineDash([6 / S, 5 / S]);
+    ctx.beginPath(); ctx.arc(them.x, them.y, R, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
   }
   for (const w of waves) {                            // Ground slam: a ring rushing out to the edge of its reach
     const k = w.t / 0.5, R = 1 + (SLAM.r - 1) * Math.sqrt(k);
@@ -2471,6 +2594,21 @@ function render() {
       else ctx.fillText(String(p.num), sx, sy + fs * 0.06);
     }
   }
+  if (fs >= 6) {                                       // what each power-up on the ground is
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const full = carried(me) >= PICKUP.bag;
+    for (const pk of game.pickups) {
+      if (pk.wait > 0) continue;
+      const [sx, sy] = w2s(pk.x, pk.y);
+      if (sx < -60 || sy < -30 || sx > W + 60 || sy > H + 30) continue;
+      ctx.globalAlpha = full ? 0.45 : 1;
+      ctx.font = `700 ${Math.max(10, fs)}px Archivo, "Segoe UI", sans-serif`; ctx.fillStyle = '#ffffff';
+      ctx.fillText(String(pk.n + 1), sx, sy + 1);
+      ctx.font = `600 11px Archivo, "Segoe UI", sans-serif`; ctx.fillStyle = rgba(POWERS[pk.n].col, 1);
+      ctx.fillText(POWERS[pk.n].name, sx, sy + PICKUP.r * S + 9);
+      ctx.globalAlpha = 1;
+    }
+  }
   for (const c of ctrl) {                             // markers over you (amber) and your friend
     if (!c) continue;
     const [sx, sy] = w2s(c.x, c.y);
@@ -2497,7 +2635,7 @@ function render() {
     ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.lineWidth = 4;
     ctx.beginPath(); ctx.arc(tack.sx, tack.sy, 15, 0, Math.PI * 2); ctx.stroke();
     ctx.strokeStyle = rgba(HOT, 1);
-    ctx.beginPath(); ctx.arc(tack.sx, tack.sy, 15, -Math.PI / 2, -Math.PI / 2 + (ti ? ti.power : 0) * Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(tack.sx, tack.sy, 15, -Math.PI / 2, -Math.PI / 2 + (ti && human ? Math.min(ti.power, human.charge) : 0) * Math.PI * 2); ctx.stroke();
   }
   drawMinimap();
 
@@ -2523,7 +2661,7 @@ function frame(now) {
       else if (game.slowmo > 0) { game.slowmo -= dt; scale = 0.3; }   // a specky
       simSpeed = scale;
       if (scale > 0) update(dt * scale);
-      if (plan && (plan.left -= dt) <= 0) endPlan();
+      if (plan && (plan.left -= dt) <= 0) planOver();
     }
     localTick(dt);
   }
@@ -2543,7 +2681,7 @@ requestAnimationFrame(frame);
 // handle for poking at the match from the console
 window.footy = {
   players, ball, game, focus, cam, stats, give, dispose, spreadFor, setHuman, update, aiDispose,
-  net, ctrl, pad, snapshot, applyAction, usePower, startJump, doShove, contestFor, startPlan, endPlan, landTime, catchBy, active, waves, awardFree,
+  net, ctrl, pad, snapshot, applyAction, tryDodge, releaseDive, usePower, startJump, doShove, contestFor, startPlan, endPlan, landTime, catchBy, active, waves, awardFree,
   get phase() { return phase; }, get human() { return human; }, get me() { return me; }, get plan() { return plan; },
 };
 })();
