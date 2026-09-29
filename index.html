@@ -674,6 +674,10 @@ const tackleHeld = () => !!spaceAt || !!(tack && tack.moved);
 let tack = null;                                      // { sx, sy: where the press was, pick: teammate id under it or -1, moved }
 function tackleZone() {
   if (!human) return null;
+  if (net.mode === 'guest' && net.lz[me]) {           // your dive in the air, as the host says it's landing
+    const z = net.lz[me];
+    return { x: z[0], y: z[1], dx: z[2], dy: z[3], sL: z[4], sT: z[5] };
+  }
   if (human.lunge && human.lunge.air) return human.lunge.field;
   if (human.charge <= 0 || ball.holder === human) return null;
   const ti = tack && tack.moved ? tackleInfo(tack) : null;   // pulling with the mouse: that way, that far
@@ -863,7 +867,7 @@ function startPlan(kind, team) {
   for (const p of players) if (p.team === team) p.route = null;   // a clean whiteboard
   bump('plan_' + kind);
 }
-function endPlan() { plan = null; }
+function endPlan() { plan = null; runHold[0] = runHold[1] = -1; }
 // a free kick your way is a call like a mark: the same slow motion to draw runs. Another call your way
 // tops the clock back up; a call the other way ends yours
 function freeKickCall(p) {
@@ -882,8 +886,9 @@ function joinAt(p, pts) {
   }
   return Math.min(best, pts.length - 1);
 }
-// a teammate stands still while you draw their run
-const waitingRun = p => phase === 'play' && !!drawing && drawing.i === p.id && p.team === me;
+// a teammate stands still while you draw their run (either person's: the host hears which one)
+const runHold = [-1, -1];                             // per team: the player whose run is being drawn, or -1
+const waitingRun = p => phase === 'play' && runHold[p.team] === p.id;
 function setRoute(team, i, pts) {
   const p = players[i];
   if (!plan || plan.team !== team || !p || p.team !== team || p === ctrl[team] || !Array.isArray(pts)) return;
@@ -1567,7 +1572,8 @@ const canDraw = () => running && !paused && !!plan && plan.team === me;
 function finishDrawing() {
   const d = drawing;
   drawing = null;
-  if (!d || d.pts.length < 3) return;
+  if (!d) return;
+  if (d.pts.length < 3) { act({ a: 'drawing', i: -1 }); return; }   // too short to be a run: they carry on
   const pts = d.pts.map(([x, y]) => [Math.round(x * 10) / 10, Math.round(y * 10) / 10]);
   net.routes.set(d.i, pts); net.routeAt.set(d.i, performance.now());
   act({ a: 'route', i: d.i, pts });
@@ -1589,6 +1595,7 @@ cv.addEventListener('pointerdown', e => {
     const p = pickTeammate(e.clientX, e.clientY);
     if (p && e.button === 0) {
       drawing = { i: p.id, pts: [[p.x, p.y]] };
+      act({ a: 'drawing', i: p.id });                 // they stand still while you draw
       try { cv.setPointerCapture(e.pointerId); } catch (_) { /* fine without capture */ }
       return;
     }
@@ -1669,7 +1676,10 @@ window.addEventListener('keyup', e => {
     act({ a: tap ? 'jump' : 'dive', x, y });          // a tap jumps; let go of a hold and you dive
   }
 });
-window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; aim = null; spaceAt = 0; shiftAt = 0; placing = null; tack = null; if (human) human.charge = 0; });
+window.addEventListener('blur', () => {
+  for (const k in keys) keys[k] = false; aim = null; spaceAt = 0; shiftAt = 0; placing = null; tack = null; if (human) human.charge = 0;
+  if (net.mode === 'guest' && running) guestSend(performance.now());   // tell the host now: a tab in the background stops drawing frames
+});
 
 // ---------------------------------------------------------------- overlay
 const overlay = document.getElementById('overlay');
@@ -1754,7 +1764,7 @@ function newGame() {
   pad[0] = blankPad(); pad[1] = blankPad();
   game.cd = [noCds(), noCds()]; game.arm = [noArms(), noArms()]; game.slowmo = 0;
   game.tokens = Array.from({ length: TOKEN.n }, (_, k) => spawnToken({}, k));
-  net.routes.clear(); drawing = null;
+  net.routes.clear(); drawing = null; runHold[0] = runHold[1] = -1;
   initPlayers(); setupBounce();
   cam.x = 0; cam.y = 0; cam.s = baseScale();
   started = true;
@@ -1804,6 +1814,8 @@ const net = {
   peer: null, conn: null, code: null,
   sentAt: 0, padKey: '', padAt: 0,
   seeded: false, snapAt: 0, bt: { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0 },
+  ts: 1,                   // how fast the host's match is running: 1, slow motion, or 0 frozen
+  lz: [null, null],        // where each person's dive in the air is landing, from the host
   heardAt: 0,
   routes: new Map(), routeAt: new Map(),            // runs this screen drew (a guest's host keeps the real ones)
 };
@@ -1818,6 +1830,12 @@ setInterval(() => {
   else hostLeft();
 }, 1000);
 const peerId = code => 'bgp-footy-' + code;
+// Servers that tell each browser its own internet address, so the two can reach each other directly.
+// PeerJS's built-in list also names its old relay servers, which no longer exist (2026-09).
+const PEER_OPTS = { config: { iceServers: [
+  { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
+  { urls: 'stun:stun.cloudflare.com:3478' },
+] } };
 function makeCode() {
   const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let c = '';
@@ -1841,7 +1859,7 @@ function hostMatch() {
   closeNet();
   net.mode = 'hosting'; me = HOME; active[AWAY] = false;
   net.code = makeCode();
-  const peer = new Peer(peerId(net.code));
+  const peer = new Peer(peerId(net.code), PEER_OPTS);
   net.peer = peer;
   const home = hostPage().location;                   // the address in the browser bar, even when framed by our own site
   menu('host-wait', { link: home.origin + home.pathname + '#' + net.code, status: 'Setting up…' });
@@ -1883,7 +1901,7 @@ function startVersus() {
 }
 function friendLeft() {
   net.conn = null; net.mode = 'hosting';              // still listening: the same link lets them back in
-  active[AWAY] = false; ctrl[AWAY] = null; pad[AWAY] = blankPad();
+  active[AWAY] = false; ctrl[AWAY] = null; pad[AWAY] = blankPad(); runHold[AWAY] = -1;
   if (running) banner('YOUR FRIEND LEFT', '#ffffff', 2);
 }
 function onGuestData(m) {
@@ -1909,7 +1927,7 @@ function act(m) {
 function applyAction(team, m) {
   const c = ctrl[team];
   if (!c) return;
-  if (plan && plan.kind === 'token' && m.a !== 'route' && m.a !== 'unroute') return;   // frozen: drawing only
+  if (plan && plan.kind === 'token' && m.a !== 'route' && m.a !== 'unroute' && m.a !== 'drawing') return;   // frozen: drawing only
   if (m.a === 'kick') {
     const dx = Number(m.dx), dy = Number(m.dy), l = hyp(dx, dy);
     if (!(l > 0) || ball.holder !== c || phase !== 'play') return;
@@ -1926,7 +1944,8 @@ function applyAction(team, m) {
     else if (m.a === 'dive') releaseDive(team, Number.isFinite(Number(m.power)) ? clamp(Number(m.power), 0.05, 1) : undefined);
     else startJump(c);
   } else if (m.a === 'power') { const n = Number(m.n); if (n >= 0 && n < POWERS.length) usePower(team, n); }
-  else if (m.a === 'route') setRoute(team, Number(m.i), m.pts);
+  else if (m.a === 'route') { runHold[team] = -1; setRoute(team, Number(m.i), m.pts); }
+  else if (m.a === 'drawing') { const p = players[Number(m.i)]; runHold[team] = p && p.team === team && plan && plan.team === team ? p.id : -1; }
   else if (m.a === 'place') {
     const p = players[Number(m.i)], x = Number(m.x), y = Number(m.y);
     if (p && p.team === team && phase !== 'play' && phase !== 'fulltime' && Number.isFinite(x) && Number.isFinite(y)) place(p, x, y);
@@ -1955,6 +1974,11 @@ function snapshot() {
     ar: [game.arm[0].perfect, game.arm[0].sure, game.arm[1].perfect, game.arm[1].sure].map(r1),
     pl: plan ? [plan.kind === 'mark' ? 1 : 2, plan.team, r1(plan.left)] : null,
     tk: game.tokens.map(tk => [r1(tk.x), r1(tk.y), tk.wait > 0 ? 0 : 1]),
+    ts: r2(simSpeed),
+    lz: ctrl.map(c => {
+      const f = c && c.lunge && c.lunge.air && c.lunge.field;
+      return f ? [r1(f.x), r1(f.y), r2(f.dx), r2(f.dy), r2(f.sL), r2(f.sT)] : null;
+    }),
   };
 }
 function hostSend(now) {
@@ -1974,11 +1998,14 @@ function joinMatch(code) {
   closeNet();
   net.mode = 'guest'; me = AWAY; active[HOME] = true; active[AWAY] = true;
   menu('connecting', { status: 'Connecting to your friend…' });
-  const peer = new Peer();
+  const peer = new Peer(PEER_OPTS);
   net.peer = peer;
   const giveUp = setTimeout(() => {
     if (net.peer === peer && !(net.conn && net.conn.open)) {
-      menu('error', { msg: "Couldn't reach your friend's match. Check the link, and make sure they still have the game open." });
+      menu('error', { msg: net.conn
+        // the lobby found their match (a missing one says so at once), but the two browsers never linked up
+        ? "Found your friend's match, but your two internet connections couldn't link up. Try again, or play on the same wifi."
+        : "Couldn't reach your friend's match. Check the link, and make sure they still have the game open." });
     }
   }, 15000);
   peer.on('open', () => {
@@ -2057,14 +2084,18 @@ function applySnapshot(s) {
   }
   plan = Array.isArray(s.pl) ? { kind: s.pl[0] === 1 ? 'mark' : 'token', team: s.pl[1], left: s.pl[2] } : null;
   if (Array.isArray(s.tk)) game.tokens = s.tk.map(q => ({ x: q[0], y: q[1], wait: q[2] ? 0 : 1 }));
+  net.ts = Number.isFinite(s.ts) ? clamp(s.ts, 0, 1) : 1;
+  net.lz = Array.isArray(s.lz) ? [0, 1].map(t => (Array.isArray(s.lz[t]) && s.lz[t].length === 6 && s.lz[t].every(Number.isFinite) ? s.lz[t] : null)) : [null, null];
   if (s.pa && !paused) { paused = true; aim = null; spaceAt = 0; shiftAt = 0; placing = null; tack = null; menu('paused'); }
   else if (!s.pa && paused) { paused = false; overlay.hidden = true; }
 }
 // between snapshots, glide everything toward where the host last said it was heading
 function guestTick(dt) {
-  game.t += dt;
+  game.t += dt * net.ts;
   if (!net.seeded) return;
-  const age = Math.min(0.12, (performance.now() - net.snapAt) / 1000);
+  // guess ahead only as far as the host's match has moved: in slow motion a runner covers a quarter
+  // of the ground per second, and frozen none, so guessing at full speed runs them on and snaps them back
+  const age = Math.min(0.12, (performance.now() - net.snapAt) / 1000) * net.ts;
   const k = 1 - Math.exp(-20 * dt);
   for (const p of players) {
     const tx = p.tx + p.tvx * age, ty = p.ty + p.tvy * age;
@@ -2084,7 +2115,7 @@ function guestTick(dt) {
     if (hyp(x - ball.x, y - ball.y) > 5) { ball.x = x; ball.y = y; ball.z = z; }
     else { ball.x += (x - ball.x) * kb; ball.y += (y - ball.y) * kb; ball.z += (z - ball.z) * kb; }
   }
-  ball.spin += dt * (ball.z > 0 ? 13 : hyp(ball.vx, ball.vy) * 2);
+  ball.spin += dt * net.ts * (ball.z > 0 ? 13 : hyp(ball.vx, ball.vy) * 2);
 }
 function guestSend(now) {
   const [x, y] = readKeys();
@@ -2477,15 +2508,20 @@ function render() {
 
 // ---------------------------------------------------------------- loop
 let last = performance.now();
+let simSpeed = 1;                                     // this frame's match speed, which the host also sends the guest
 function frame(now) {
   const dt = Math.min(0.033, Math.max(0, (now - last) / 1000));
   last = now;
   if (running && !paused) {
-    if (net.mode === 'guest') guestTick(dt);
-    else {
+    if (net.mode === 'guest') {
+      guestTick(dt);
+      // nothing from the host for a while, but they're still there: their game's tab isn't in front
+      if (net.seeded && now - net.snapAt > 1500 && bannerT < 0.2) showBanner('WAITING FOR YOUR FRIEND', '#ffffff', 0.5);
+    } else {
       let scale = 1;                                  // drawing a play: slow motion after a mark, frozen on a token
       if (plan) scale = plan.kind === 'token' ? 0 : PLAN.markSpeed;
       else if (game.slowmo > 0) { game.slowmo -= dt; scale = 0.3; }   // a specky
+      simSpeed = scale;
       if (scale > 0) update(dt * scale);
       if (plan && (plan.left -= dt) <= 0) endPlan();
     }
@@ -2507,7 +2543,7 @@ requestAnimationFrame(frame);
 // handle for poking at the match from the console
 window.footy = {
   players, ball, game, focus, cam, stats, give, dispose, spreadFor, setHuman, update, aiDispose,
-  net, ctrl, pad, snapshot, applyAction, usePower, startJump, doShove, contestFor, endPlan, landTime, catchBy, active, waves, awardFree,
+  net, ctrl, pad, snapshot, applyAction, usePower, startJump, doShove, contestFor, startPlan, endPlan, landTime, catchBy, active, waves, awardFree,
   get phase() { return phase; }, get human() { return human; }, get me() { return me; }, get plan() { return plan; },
 };
 })();
