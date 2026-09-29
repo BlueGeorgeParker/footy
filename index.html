@@ -119,12 +119,13 @@
   .pw.cool { cursor: not-allowed; opacity: .45; }
   .pw:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
   .pw i { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: rgba(0,0,0,.6); }
-  .pw kbd, .pw span, .pw b { position: relative; }
-  .pw kbd { justify-self: start; }
+  .pw kbd, .pw span, .pw b, .pw .hd { position: relative; }
+  .pw .hd { display: flex; align-items: center; gap: 7px; }
+  .pw svg { width: 20px; height: 20px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .pw span { font-size: 11px; font-weight: 600; line-height: 1.15; }
   .pw b { position: absolute; right: 6px; top: 5px; font: 700 15px/1 sans-serif; letter-spacing: 1px; color: var(--pc); }
   .pw.on { opacity: 1; border-color: var(--amber); box-shadow: inset 0 0 0 1px var(--amber), 0 0 18px rgba(255,207,51,.35); }
-  @media (max-width: 760px) { .pw { width: 62px; } .pw span { font-size: 9px; } }
+  @media (max-width: 760px) { .pw { width: 62px; } .pw span { font-size: 9px; } .pw svg { width: 16px; height: 16px; } .pw .hd { gap: 4px; } }
   @media (prefers-reduced-motion: reduce) { #banner { transition: none; } }
 </style>
 <!-- Pinned by fingerprint: the browser refuses any copy of this file that is not byte-for-byte the one
@@ -159,12 +160,12 @@
     <dl class="controls">
       <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>Run</dd>
       <dt><kbd>Left-click</kbd></dt><dd>Kick. Hold, pull back, let go. The further you pull, the longer the kick and the wider the area it could land in.</dd>
-      <dt><kbd>Left-drag</kbd></dt><dd>Without the ball: tackle. Press, pull back and let go, and you launch yourself the other way. Like a kick, the red area shows where you could land: the further you pull, the further you fly (up to 16&nbsp;m) and the wider it gets. A dive is your shove too: the harder you wound it up, the further anyone you land on goes flying, but miss with a big one and you skid on and stay down longer. Two of you diving or charging into each other at once, you both bounce off. A long dive has to be wound up: it takes a full second of pulling to reach all the way, and the whole time you glow and they can see how far you could get. Long dives are slower in the air too, so they give the carrier more time to dodge. You're in the air on the way, so only where you land counts. A quick click without a pull takes over the teammate nearest the pointer instead.</dd>
+      <dt><kbd>Left-drag</kbd></dt><dd>Without the ball: tackle. Press, pull back and let go, and you launch yourself the other way. Like a kick, the red area shows where you could land: the further you pull, the further you fly (up to 16&nbsp;m) and the wider it gets. A dive is your shove too: the harder you wound it up, the further whoever you land on goes flying, ball carrier or not (about 6&nbsp;m for a full one), but miss and you skid exactly that far yourself, and stay down longer. Two of you diving or charging into each other at once, you both bounce off. A long dive has to be wound up: it takes a full second of pulling to reach all the way, and the whole time you glow and they can see how far you could get. Long dives are slower in the air too, so they give the carrier more time to dodge. You're in the air on the way, so only where you land counts. A quick click without a pull takes over the teammate nearest the pointer instead.</dd>
       <dt><kbd>Right-click</kbd></dt><dd>With the ball: handball, the same way as a kick. It only goes 35&nbsp;m, but it's quick and flat: there before a kick would be, though anyone in its path can pick it off, and nobody can mark it. Catch one from a teammate and you get 5 seconds of the mark's slow motion to draw the next run, inside a smaller circle: nobody can tackle you in it, and when the 5 seconds are up the circle goes and it's play on.</dd>
       <dt><kbd>Right-click</kbd></dt><dd>Without the ball: dodge toward the pointer, a quick step of up to 5&nbsp;m that stops on it. Nothing can tackle, dive into, charge or shove you mid-dodge, so time it and they sail past, then dodge straight back onto the spot. Each one uses a little of your sprint bar.</dd>
       <dt><kbd>Click</kbd></dt><dd>Take over the teammate nearest the pointer (they're ringed) whenever you don't have the ball. Run under it to catch it.</dd>
-      <dt><kbd>&larr;</kbd><kbd>&rarr;</kbd></dt><dd>Switch between your players near the ball and near where it's coming down, left to right. Every kick puts you on the one nearest where it's coming down to start with.</dd>
-      <dt><kbd>Q</kbd></dt><dd>Take over the teammate closest to where the ball is coming down</dd>
+      <dt><kbd>Q</kbd><kbd>E</kbd></dt><dd>Switch between your players near the ball and near where it's coming down: Q to the next one on the left, E to the next one on the right (the arrow keys do the same). Every kick puts you on the one nearest where it's coming down to start with.</dd>
+      <dt><kbd>R</kbd></dt><dd>Take over the teammate closest to where the ball is coming down</dd>
       <dt><kbd>Space</kbd></dt><dd>With the ball: dodge. You sidestep about 5&nbsp;m the instant you press it (it uses a little of your sprint bar), the way you're running (or sideways away from them if you're not holding a direction), and nobody can tackle you mid-dodge. Watch for the red glow and the red landing area, and go before the dive lands. Without the ball: tap to jump: for the mark when the ball's dropping near you, and from right behind someone you climb them for a specky. A jump also clears a ground slam. Hold to wind up a diving tackle straight away, and let go to dive. The dive knocks down any opponent it hits, ball or not, and dive through the ball to take it, however high it is.</dd>
       <dt><kbd>Shift</kbd></dt><dd>Tap to charge: a burst forward nobody can tackle. Hit an opponent and you stop dead while they go down and fly off with your speed, ball or not. Hold to sprint (it uses the bar under your player); sprint into an opponent who hasn't got the ball and you knock them out of the way. That's also how you push someone off the spot in a marking contest.</dd>
       <dt><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><kbd>5</kbd></dt><dd>Use a power-up you're carrying: perfect kick, guaranteed mark, Gigaplayer, Zone Pass, ground slam. Press the number or click it in the bar at the bottom. They lie around the ground: run through one while you've got the ball and your side carries it, up to 4 at once. With 4 already, they stay on the ground (dimmed) until you use one. A new one turns up somewhere else 15 seconds after one's picked up.</dd>
@@ -233,12 +234,23 @@ const TOKEN = { n: 5, r: 1.8, respawn: 20 };                                 // 
 const JUMP = { dur: 0.6, boost: 1.3, specky: 2.8, climb: 2.8 };             // jumping for a mark (metres of extra reach)
 const SHOVE = { range: 2.6, cd: 1.2, kick: 7 };
 const POWERS = [                                       // keys 1-5; picked up off the ground, used from the bar
-  { key: 'perfect', name: 'Perfect kick', col: [111, 211, 255], arm: 15, tip: 'Your next kick lands exactly where you aim.' },
-  { key: 'sure', name: 'Guaranteed mark', col: [125, 240, 154], arm: 12, tip: "Your side's next catch can't be beaten or shoved off." },
-  { key: 'giant', name: 'Gigaplayer', col: [197, 155, 255], dur: 6, tip: "Double size for 6 seconds: can't be tackled, and flattens anyone you run into." },
-  { key: 'zone', name: 'Zone Pass', col: [242, 242, 242], dur: 8, tip: 'Walk through the walls for 8 seconds. Get home before it runs out.' },
-  { key: 'slam', name: 'Ground slam', col: [255, 127, 200], tip: 'Leap up and slam the ground: every opponent close by is thrown clear, and whoever has the ball drops it. Jump and it misses you.' },
+  { key: 'perfect', name: 'Perfect kick', col: [111, 211, 255], arm: 15,
+    ic: 'M4 12a8 8 0 1 0 16 0a8 8 0 1 0-16 0M10.5 12a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0-3 0M12 1v4M12 19v4M1 12h4M19 12h4',   // a target
+    tip: 'Your next kick lands exactly where you aim.' },
+  { key: 'sure', name: 'Guaranteed mark', col: [125, 240, 154], arm: 12,
+    ic: 'M5 3h5v9a2 2 0 0 0 4 0V3h5v9a7 7 0 0 1-14 0ZM5 7h5M14 7h5',   // a magnet: the ball sticks
+    tip: "Your side's next catch can't be beaten or shoved off." },
+  { key: 'giant', name: 'Gigaplayer', col: [197, 155, 255], dur: 6,
+    ic: 'M9 7a3 3 0 1 0 6 0a3 3 0 1 0-6 0M6.5 21v-2.5a5.5 5.5 0 0 1 11 0V21M2 7l2-3 2 3M4 4v8M18 7l2-3 2 3M20 4v8',   // a player, growing
+    tip: "Double size for 6 seconds: can't be tackled, and flattens anyone you run into." },
+  { key: 'zone', name: 'Zone Pass', col: [242, 242, 242], dur: 8,
+    ic: 'M12 2v6M12 16v6M2 12h19M17 8l4 4-4 4',   // an arrow through a gap in a wall
+    tip: 'Walk through the walls for 8 seconds. Get home before it runs out.' },
+  { key: 'slam', name: 'Ground slam', col: [255, 127, 200],
+    ic: 'M12 2v12M7.5 9.5L12 14l4.5-4.5M3 20h18M6.5 17L4 15M17.5 17L20 15',   // down hard on the ground
+    tip: 'Leap up and slam the ground: every opponent close by is thrown clear, and whoever has the ball drops it. Jump and it misses you.' },
 ];
+const ICONS = POWERS.map(P => new Path2D(P.ic));
 const PICKUP = { n: 5, r: 1.6, respawn: 15, bag: 4 };   // power-ups on the ground: run through one with the ball; bag = the most a side carries
 const SLAM = { rise: 0.35, r: 7, spd: [19, 8], down: 1.0, fly: 0.35 };  // up for rise seconds, then everyone within r metres flies
 const noArms = () => ({ perfect: 0, sure: 0 });
@@ -393,7 +405,7 @@ const powersEl = document.getElementById('powers');
 const planEl = document.getElementById('plan');
 const planTitle = document.getElementById('planTitle'), planHint = document.getElementById('planHint'), planBar = document.getElementById('planBar');
 powersEl.innerHTML = POWERS.map((Pw, n) =>
-  `<button type="button" class="pw" tabindex="-1" style="--pc:${rgba(Pw.col, 1)}" title="${Pw.name} (${n + 1}): ${Pw.tip} Pick them up by running through them on the ground with the ball."><i></i><kbd>${n + 1}</kbd><span>${Pw.name}</span><b></b></button>`).join('');
+  `<button type="button" class="pw" tabindex="-1" style="--pc:${rgba(Pw.col, 1)}" title="${Pw.name} (${n + 1}): ${Pw.tip} Pick them up by running through them on the ground with the ball."><i></i><div class="hd"><kbd>${n + 1}</kbd><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${Pw.ic}"/></svg></div><span>${Pw.name}</span><b></b></button>`).join('');
 const pwEls = [...powersEl.children].map(el => ({ el, shade: el.querySelector('i'), secs: el.querySelector('b') }));
 pwEls.forEach((w, n) => {
   w.el.addEventListener('pointerdown', e => e.preventDefault());   // don't take focus: Space and Shift stay with the game
@@ -758,6 +770,7 @@ function diveContact(p, L) {
     bump('diveHit');
     tackle(p, h);
     if (ball.holder !== p) p.down = 0.3;
+    if (L.power !== undefined) { const k = diveShove(L.power); h.bumpCd = 0; if (flatten(h, L.dx, L.dy, k.spd, 'tackledFlying')) h.flyT = k.fly; }   // your dive: they fly as far as it was wound up
     return true;
   }
   for (const v of players) {                          // anyone else the dive meets goes down too
@@ -770,13 +783,16 @@ function diveContact(p, L) {
     if (game.arm[v.team].sure > 0 && contestFor(v)) continue;   // a guaranteed mark holds their ground
     const inBack = (v.fx * ox + v.fy * oy) / (d || 1) > 0.55;
     p.lunge = null; p.vx *= 0.3; p.vy *= 0.3; p.down = 0.3;
-    const pw = L.power || 0;                          // the harder you wound it up, the further they go
-    if (flatten(v, L.dx, L.dy, lerp(8, 22, pw), 'diveKnock')) v.flyT = 0.5 * pw;
+    const k = diveShove(L.power || 0);                // the harder you wound it up, the further they go
+    if (flatten(v, L.dx, L.dy, k.spd, 'diveKnock')) v.flyT = k.fly;
     if (inBack && contestFor(v)) awardFree(v, 'PUSH IN THE BACK');
     return true;
   }
   return false;
 }
+// a dive's shove, by how hard it was wound up: the speed whoever it lands on flies off at, and how long they skid
+// before the ground bites (about 1 m for a flick, 6 m for a full one). Miss, and you go exactly that far yourself
+const diveShove = pw => ({ spd: lerp(8, 22, pw), fly: 0.5 * pw });
 // two going at each other at once (dives or charges): you bounce off each other
 function clash(p, v) {
   const dx = v.x - p.x, dy = v.y - p.y, d = hyp(dx, dy) || 1, ux = dx / d, uy = dy / d;
@@ -850,9 +866,9 @@ function moveSpecial(p, dt) {
     if (L.air) {                                      // your dive: flying over everyone, it only counts where it lands
       if (L.t >= L.dur) {
         p.lunge = null; p.vx *= 0.2; p.vy *= 0.2;
-        if (!diveContact(p, L)) {                     // missed: the harder you went, the further you skid and the longer you're down
-          const pw = L.power || 0;
-          p.down = lerp(0.5, 1.3, pw); p.vx = L.dx * L.spd * 0.45 * pw; p.vy = L.dy * L.spd * 0.45 * pw; p.flyT = 0.35 * pw;
+        if (!diveContact(p, L)) {                     // missed: you skid as far as you'd have knocked them, and you're down longer
+          const pw = L.power || 0, k = diveShove(pw);
+          p.down = lerp(0.5, 1.3, pw); p.vx = L.dx * k.spd; p.vy = L.dy * k.spd; p.flyT = k.fly;
           bump('diveMiss'); dodgedIt(L);
         }
       }
@@ -1769,9 +1785,9 @@ window.addEventListener('keydown', e => {
   if (BLOCK.has(e.code)) e.preventDefault();
   keys[e.code] = true;
   if (e.repeat) return;
-  if (e.code === 'KeyQ') takeNearest();
-  if (e.code === 'ArrowRight') cycleNear(1);
-  if (e.code === 'ArrowLeft') cycleNear(-1);
+  if (e.code === 'KeyQ' || e.code === 'ArrowLeft') cycleNear(-1);    // switch to the next of your players to the left
+  if (e.code === 'KeyE' || e.code === 'ArrowRight') cycleNear(1);    // ...or to the right
+  if (e.code === 'KeyR') takeNearest();
   if (e.code === 'Space') {
     if (human && ball.holder === human && phase === 'play') { const [x, y] = readKeys(); act({ a: 'dodge', x, y }); }   // with the ball: dodge, right now
     else spaceAt = performance.now();                // without: winds up a tackle from the press; a quick tap jumps instead
@@ -2632,9 +2648,14 @@ function render() {
       const [sx, sy] = w2s(pk.x, pk.y);
       if (sx < -60 || sy < -30 || sx > W + 60 || sy > H + 30) continue;
       ctx.globalAlpha = full ? 0.45 : 1;
-      ctx.font = `700 ${Math.max(10, fs)}px Archivo, "Segoe UI", sans-serif`; ctx.fillStyle = '#ffffff';
-      ctx.fillText(String(pk.n + 1), sx, sy + 1);
-      ctx.font = `600 11px Archivo, "Segoe UI", sans-serif`; ctx.fillStyle = rgba(POWERS[pk.n].col, 1);
+      const z = clamp(S * 1.8, 11, 28), k = z / 24;     // the icon, sized to sit inside the diamond
+      ctx.save();
+      ctx.translate(sx - z / 2, sy - z / 2); ctx.scale(k, k);
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.lineWidth = 4.2 / Math.max(k, 0.6); ctx.stroke(ICONS[pk.n]);   // a dark edge so it reads on the grass
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.2 / Math.max(k, 0.6); ctx.stroke(ICONS[pk.n]);
+      ctx.restore();
+      ctx.font = `600 11px Archivo, "Segoe UI", sans-serif`; ctx.fillStyle = '#ffffff';
       ctx.fillText(POWERS[pk.n].name, sx, sy + PICKUP.r * S + 9);
       ctx.globalAlpha = 1;
     }
