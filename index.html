@@ -732,7 +732,7 @@ function tackleInfo(t) {
   return len < 12 ? null : { dx: dx / len, dy: dy / len, power: clamp(len / FULL_DRAG, 0.05, 1) };
 }
 function startLunge(p, dx, dy, spd, dur, downT) {
-  p.lunge = { t: 0, dur, dx, dy, spd, downT, at: performance.now(), dodged: 0 };   // dodged: how quick the carrier got out of the way
+  p.lunge = { t: 0, dur, dx, dy, spd, downT, dodged: false };   // dodged: someone got out of its way while it flew
   p.charge = 0;
   const h = ball.holder;                              // a computer ball carrier sometimes sees it coming
   if (h && !controlled(h) && h.team !== p.team && h.leapCd <= 0 && canAct(h) &&
@@ -844,8 +844,7 @@ function tryDodge(p, dist) {
   startLeap(p, dx, dy, T, DODGE.spd);
   p.dodge = true; p.leapCd = p.leapCd0 = DODGE.cd; p.en -= DODGE.cost;
   bump('dodge');
-  const now = performance.now();                      // a dive already coming: note how quick you were
-  for (const o of players) if (o.team !== p.team && o.lunge && o.lunge.at && hyp(o.x - p.x, o.y - p.y) < 22) o.lunge.dodged = (now - o.lunge.at) / 1000;
+  for (const o of players) if (o.team !== p.team && o.lunge && hyp(o.x - p.x, o.y - p.y) < 22) o.lunge.dodged = true;   // a dive already coming
 }
 // an opponent climbing p's back for a specky right now
 const climberOn = p => players.find(q => q.climb === p && q.jumpT > 0 && q.team !== p.team) || null;
@@ -860,7 +859,7 @@ function shrug(p, q) {
 function dodgedIt(L) {
   if (!L.dodged) return;
   bump('dodged');
-  banner(`DODGED IN ${L.dodged.toFixed(2)} s`, '#ffffff', 1.3);
+  banner('DODGED', '#ffffff', 1.1);
 }
 // dives, leaps and lying on the deck take over from normal running
 function moveSpecial(p, dt) {
